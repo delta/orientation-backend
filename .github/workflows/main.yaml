@@ -22,14 +22,11 @@ jobs:
         with:
           go-version: "1.16"
 
-      - name: go version
-        run: go version
-
       - name: Setup MySQL
         run: |
           sudo apt update
           sudo apt install -y default-mysql-client
-          mysql -h 0.0.0.0 --port 3306 -u root -p password -e 'CREATE DATABASE IF NOT EXIST utopia;'
+          mysql -h 0.0.0.0 --port 3306 -u root -ppassword -e 'CREATE DATABASE IF NOT EXIST utopia;'
 
       - name: Setup env file
         run: cp .sample.env .env
