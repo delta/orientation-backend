@@ -1,6 +1,6 @@
 ## Backend for Utopia - Orientation'21
 
-### Prerequistes
+### Prerequisites
 
 - Go 1.16+
 - MySQL

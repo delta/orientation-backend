@@ -22,19 +22,15 @@ jobs:
         with:
           go-version: "1.16"
 
-      - name: Setup MySQL
-        run: |
-          sudo apt update
-          sudo apt install -y default-mysql-client
-          mysql -h 0.0.0.0 --port 3306 -u root -ppassword -e 'CREATE DATABASE IF NOT EXIST utopia;'
-
       - name: Setup env file
         run: cp .sample.env .env
 
-      - name: Run Migrations
-        run: |
-          go get -tags 'mysql'  -u github.com/golang-migrate/migrate/v4/cmd/migrate/
-          migrate -path "./migrations" -database "mysql://root:password@/utopia" up
+      # migration action, uncomment this after adding atleast one migrations
+
+      # - name: Run Migrations
+      #   run: |
+      #     go get -tags 'mysql'  -u github.com/golang-migrate/migrate/v4/cmd/migrate/
+      #     migrate -path "./migrations" -database "mysql://root:password@/utopia" up
 
       - name: Go Build
-        run: go build
+        run: go build .
