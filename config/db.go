@@ -29,5 +29,7 @@ func initDB() {
 	}
 
 	db.AutoMigrate(&models.User{}, &models.SpriteSheet{})
+	// Create dummy spritesheet for testing
+	// db.Create(&models.SpriteSheet{ID: 1})
 	DB = db
 }

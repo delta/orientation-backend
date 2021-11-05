@@ -1,0 +1,6 @@
+.git
+Dockerfile
+README.md
+docker-compose.yml
+dauth.config.example.json
+.sample.env
