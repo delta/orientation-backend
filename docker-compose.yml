@@ -18,3 +18,8 @@ services:
       - MYSQL_PASSWORD=password
       - MYSQL_DATABASE=utopia
       - MYSQL_ROOT_PASSWORD=passsword
+    volumes:
+      - orientation_db_volume:/var/lib/mysql
+
+volumes:
+  orientation_db_volume:
