@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	"github.com/delta/orientation-backend/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -27,5 +28,8 @@ func initDB() {
 		panic(fmt.Errorf("error connecting DB, %+v", err))
 	}
 
+	db.AutoMigrate(&models.User{}, &models.SpriteSheet{})
+	// Create dummy spritesheet for testing
+	// db.Create(&models.SpriteSheet{ID: 1})
 	DB = db
 }

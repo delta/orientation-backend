@@ -1,0 +1,25 @@
+version: '3'
+services:
+  orientation_server:
+    build: .
+    ports: 
+      - 3001:3001
+    restart: on-failure
+    depends_on:
+      - orientation_db
+
+  orientation_db:
+    image: mysql:5.7
+    ports: 
+      - 3306:3306
+    environment: 
+      - MYSQL_ROOT_HOST=orientation_db
+      - MYSQL_USER=nanth
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=utopia
+      - MYSQL_ROOT_PASSWORD=passsword
+    volumes:
+      - orientation_db_volume:/var/lib/mysql
+
+volumes:
+  orientation_db_volume:
