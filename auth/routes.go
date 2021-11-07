@@ -122,7 +122,7 @@ func CallBack(w http.ResponseWriter, r *http.Request) {
 	}
 	if err = config.DB.Where("email = ?", userResult.Email).First(&user).Error; err != nil {
 		rand.Seed(time.Now().UnixNano())
-		config.DB.Create(&models.User{Email: userResult.Email, Name: userResult.Name, Gender: gender, SpriteSheetID: rand.Intn(totalSprites) + 1})
+		user = models.User{Email: userResult.Email, Name: userResult.Name, Gender: gender, SpriteSheetID: rand.Intn(totalSprites) + 1}
 		// isNewUser = true
 	}
 	userToken, _ := createToken(jwt.MapClaims{
