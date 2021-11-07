@@ -30,6 +30,8 @@ func initDB() {
 
 	db.AutoMigrate(&models.User{}, &models.SpriteSheet{})
 	// Create dummy spritesheet for testing
-	// db.Create(&models.SpriteSheet{ID: 1})
+	// for i := 1; i < 5; i++ {
+	//   db.Create(&models.SpriteSheet{ID: i})
+	// }
 	DB = db
 }

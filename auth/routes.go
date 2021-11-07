@@ -6,11 +6,14 @@ import (
 	"github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/models"
 	"github.com/golang-jwt/jwt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 )
+
+var totalSprites = 4
 
 type TokenResult struct {
 	Type    string `json:"token_type"`
@@ -59,11 +62,7 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 			panic(fmt.Errorf("Error with url"))
 		}
 		base, _ := url.Parse("https://auth.delta.nitt.edu/authorize")
-		x := base
 		base.RawQuery = queryString.Encode()
-		res, _ := makeRequest(http.MethodGet, x.String(), map[string]string{}, queryString.Encode())
-		fmt.Println(string(res))
-		fmt.Println(base)
 		http.Redirect(w, r, base.String(), 302)
 	} else {
 		// fmt.Println("Hel")
@@ -122,11 +121,10 @@ func CallBack(w http.ResponseWriter, r *http.Request) {
 		gender = models.Female
 	}
 	if err = config.DB.Where("email = ?", userResult.Email).First(&user).Error; err != nil {
-		config.DB.Create(&models.User{Email: userResult.Email, Name: userResult.Name, Gender: gender, SpriteSheetID: 1})
+		rand.Seed(time.Now().UnixNano())
+		config.DB.Create(&models.User{Email: userResult.Email, Name: userResult.Name, Gender: gender, SpriteSheetID: rand.Intn(totalSprites) + 1})
 		// isNewUser = true
 	}
-	// fmt.Println(time.Duration(1) * time.Hour)
-	fmt.Println(time.Now().Add(time.Duration(currentConfig.Cookie.User.Expires) * time.Minute).Unix())
 	userToken, _ := createToken(jwt.MapClaims{
 		"id":    user.ID,
 		"email": user.Email,
@@ -175,57 +173,9 @@ func LogOut(w http.ResponseWriter, r *http.Request) {
 
 func CheckAuth(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Entered")
-	result := false
-	w.Header().Set("Content-Type", "application/json")
-	user, err := getCurrentUser(r)
-	fmt.Println(user)
-	if err == nil {
-		result = true
-	} else {
-		cookie, err := r.Cookie(currentConfig.Cookie.Refresh.Name)
-		if err != nil {
-			result = false
-		} else {
-			type customClaims struct {
-				ID int `json:"id"`
-				jwt.StandardClaims
-			}
-			refreshToken, err := jwt.ParseWithClaims(cookie.Value, &customClaims{}, func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-				}
-
-				return hmacSampleSecret, nil
-			})
-			if claims, ok := refreshToken.Claims.(*customClaims); ok && refreshToken.Valid {
-				var user models.User
-				err = config.DB.Where("id = ?", claims.ID).First(&user).Error
-				if err != nil {
-					result = false
-				} else {
-					userToken, err := createToken(jwt.MapClaims{
-						"id":    user.ID,
-						"email": user.Email,
-						"exp":   time.Now().Add(time.Duration(currentConfig.Cookie.User.Expires) * time.Hour).Unix(),
-					})
-					if err != nil {
-						result = false
-					} else {
-						userCookie := fmt.Sprintf("%s=%s; HttpOnly; Max-Age=%d; Path=/",
-							currentConfig.Cookie.User.Name,
-							userToken,
-							int64((time.Duration(currentConfig.Cookie.User.Expires) * time.Hour).Seconds()),
-						)
-						w.Header().Add("Set-Cookie", userCookie)
-						result = true
-					}
-				}
-
-			} else {
-				result = false
-				return
-			}
-		}
+	newUserCookie, result := checkAuth(r)
+	if newUserCookie != "" {
+		w.Header().Add("Set-Cookie", newUserCookie)
 	}
 	json.NewEncoder(w).Encode(isAuthResult{Status: result})
 }
