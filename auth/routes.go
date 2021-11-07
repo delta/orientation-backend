@@ -6,11 +6,14 @@ import (
 	"github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/models"
 	"github.com/golang-jwt/jwt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 )
+
+var totalSprites = 4
 
 type TokenResult struct {
 	Type    string `json:"token_type"`
@@ -118,7 +121,8 @@ func CallBack(w http.ResponseWriter, r *http.Request) {
 		gender = models.Female
 	}
 	if err = config.DB.Where("email = ?", userResult.Email).First(&user).Error; err != nil {
-		config.DB.Create(&models.User{Email: userResult.Email, Name: userResult.Name, Gender: gender, SpriteSheetID: 1})
+		rand.Seed(time.Now().UnixNano())
+		config.DB.Create(&models.User{Email: userResult.Email, Name: userResult.Name, Gender: gender, SpriteSheetID: rand.Intn(totalSprites) + 1})
 		// isNewUser = true
 	}
 	userToken, _ := createToken(jwt.MapClaims{
