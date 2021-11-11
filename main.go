@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"regexp"
 
 	"github.com/labstack/echo/v4"
@@ -22,9 +21,9 @@ func main() {
 
 	config.DB.AutoMigrate(&models.User{}, &models.SpriteSheet{})
 	// Create dummy spritesheet for testing
-	// for i := 1; i < 5; i++ {
-	//   db.Create(&models.SpriteSheet{ID: i})
-	// }
+	for i := 1; i < 5; i++ {
+		config.DB.Create(&models.SpriteSheet{ID: i})
+	}
 
 	port := config.Config("PORT")
 	addr := fmt.Sprintf(":%s", port)
@@ -32,13 +31,7 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Recover())
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello World")
-	}
-
-	http.HandleFunc("/", handler)
 	e.GET("/auth", auth.Auth)
-	e.GET("/auth/callback", auth.CallBack)
 	e.Group("/api/auth", middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOriginFunc: allowOrigin,
 		AllowMethods:    []string{"GET"},
@@ -56,8 +49,9 @@ func main() {
 			echo.HeaderAccessControlAllowCredentials,
 		},
 	}))
-	e.GET("api/auth/logout", auth.LogOut)
-	e.GET("api/auth/checkAuth", auth.CheckAuth)
+	e.GET("/api/auth/callback", auth.CallBack)
+	e.GET("/api/auth/logout", auth.LogOut)
+	e.GET("/api/auth/checkAuth", auth.CheckAuth)
 
 	e.Logger.Fatal(e.Start(addr))
 }

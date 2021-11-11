@@ -18,7 +18,7 @@ func handleCallBack(code string) (string, string, bool, error) {
 		"code":          code,
 		"client_secret": currentConfig.Dauth.Client_secret,
 		"client_id":     currentConfig.Dauth.Client_id,
-		"redirect_uri":  config.Config("HOME_PAGE_URI") + "/auth/callback",
+		"redirect_uri":  config.Config("CALLBACK_PAGE_URI"),
 		"grant_type":    currentConfig.Dauth.Grant_type,
 	}
 	tokenQueryString, err := encodeQuery(params)

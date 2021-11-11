@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	// "github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/config"
 	"github.com/labstack/echo/v4"
 )
@@ -24,7 +25,7 @@ func Auth(c echo.Context) error {
 	// fmt.Println(r.Host)
 	params := map[string]string{
 		"client_id":     currentConfig.Dauth.Client_id,
-		"redirect_uri":  config.Config("HOME_PAGE_URI") + "/auth/callback",
+		"redirect_uri":  config.Config("CALLBACK_PAGE_URI"),
 		"response_type": currentConfig.Dauth.Response_type,
 		"grant_type":    currentConfig.Dauth.Grant_type,
 		"state":         currentConfig.Dauth.State,
@@ -42,11 +43,12 @@ func Auth(c echo.Context) error {
 
 func CallBack(c echo.Context) error {
 	code := c.QueryParam("code")
+	fmt.Println(code)
 
 	// Getting Token
 	userToken, refreshToken, _, err := handleCallBack(code)
 	if err != nil {
-		return c.Redirect(http.StatusFound, uiURL)
+		return c.JSON(http.StatusOK, isAuthResult{Status: false})
 	}
 
 	userCookie := http.Cookie{
@@ -66,7 +68,10 @@ func CallBack(c echo.Context) error {
 	}
 	c.SetCookie(&userCookie)
 	c.SetCookie(&refreshCookie)
-	return c.Redirect(http.StatusFound, uiURL)
+	origin := c.Request().Header.Get(echo.HeaderOrigin)
+	c.Response().Header().Set(echo.HeaderAccessControlAllowOrigin, origin)
+	c.Response().Header().Set(echo.HeaderAccessControlAllowCredentials, "true")
+	return c.JSON(http.StatusOK, isAuthResult{Status: true})
 }
 
 func LogOut(c echo.Context) error {
@@ -85,7 +90,6 @@ func LogOut(c echo.Context) error {
 		MaxAge:   -1,
 	}
 	c.SetCookie(&refreshCookie)
-	fmt.Println(c.Response().Header().Values(echo.HeaderAccessControlAllowOrigin))
 	origin := c.Request().Header.Get(echo.HeaderOrigin)
 	c.Response().Header().Set(echo.HeaderAccessControlAllowOrigin, origin)
 	c.Response().Header().Set(echo.HeaderAccessControlAllowCredentials, "true")
