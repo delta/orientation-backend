@@ -21,9 +21,9 @@ func main() {
 
 	config.DB.AutoMigrate(&models.User{}, &models.SpriteSheet{})
 	// Create dummy spritesheet for testing
-	for i := 1; i < 5; i++ {
-		config.DB.Create(&models.SpriteSheet{ID: i})
-	}
+	// for i := 1; i < 5; i++ {
+	// 	config.DB.Create(&models.SpriteSheet{ID: i})
+	// }
 
 	port := config.Config("PORT")
 	addr := fmt.Sprintf(":%s", port)
@@ -52,6 +52,6 @@ func main() {
 	e.GET("/api/auth/callback", auth.CallBack)
 	e.GET("/api/auth/logout", auth.LogOut)
 	e.GET("/api/auth/checkAuth", auth.CheckAuth)
-
+	e.POST("/api/auth/register", auth.RegisterUser)
 	e.Logger.Fatal(e.Start(addr))
 }

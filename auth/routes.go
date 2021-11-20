@@ -107,3 +107,16 @@ func CheckAuth(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderAccessControlAllowCredentials, "true")
 	return c.JSON(http.StatusOK, isAuthResult{Status: result})
 }
+
+func RegisterUser(c echo.Context) error {
+	name := c.FormValue("name")
+	email := c.FormValue("email")
+	desc := c.FormValue("description")
+	gender := c.FormValue("gender")
+	dept := c.FormValue("department")
+	err := registerUser(name, email, desc, gender, dept)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, isAuthResult{Status: false})
+	}
+	return c.JSON(http.StatusOK, isAuthResult{Status: true})
+}

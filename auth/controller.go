@@ -168,3 +168,20 @@ func getCurrentUser(c echo.Context) (models.User, error) {
 		return models.User{}, fmt.Errorf("Invalid token")
 	}
 }
+
+func registerUser(name string, email string, desc string, gender string, dept string) error {
+	if len(name) == 0 || len(email) == 0 || len(desc) == 0 || len(gender) == 0 || len(dept) == 0 {
+		return fmt.Errorf("Invalid form values")
+	}
+	var genderEnum models.Gender
+	if gender == "male" {
+		genderEnum = models.Male
+	} else {
+		genderEnum = models.Female
+	}
+	user := models.CreateNewUser(email, name, genderEnum)
+	user.Department = dept
+	user.Description = desc
+	err := config.DB.Save(&user).Error
+	return err
+}
