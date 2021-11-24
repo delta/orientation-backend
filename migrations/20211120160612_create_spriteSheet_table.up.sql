@@ -1,0 +1,1 @@
+CREATE TABLE `sprite_sheets` (`id` bigint AUTO_INCREMENT,PRIMARY KEY (`id`))

@@ -22,7 +22,8 @@ type User struct {
 	ID            int    `gorm:"primary_key;auto_increment" json:"-"`
 	Email         string `gorm:"unique;not null"`
 	Name          string
-	Description   string `gorm:"default:null"`
+	Username      string `gorm:"default:null"`
+	Description   string
 	Gender        Gender `sql:"type:ENUM('male', 'female')"`
 	Department    string `gorm:"default:null"`
 	RefreshToken  string `gorm:"default:null"`

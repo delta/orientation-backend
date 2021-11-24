@@ -11,160 +11,123 @@ import (
 	"github.com/delta/orientation-backend/models"
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
+	logger "github.com/sirupsen/logrus"
 )
 
-func handleCallBack(code string) (string, string, bool, error) {
+// ands the auth code to the database,
+// and creates an user if the user doesn't exist in the database
+// returns userToken, refreshToken, user, isNewUser(bool), error
+func handleCallBack(code string) (string, string, models.User, bool, error) {
+	var l = logger.WithFields(logger.Fields{
+		"method": "auth/controllers/handleCallback",
+		"code":   code, // is it okay to log the the code ?
+	})
+	l.Infof("a user trying to login with dauth login code")
 	params := map[string]string{
 		"code":          code,
-		"client_secret": currentConfig.Dauth.Client_secret,
-		"client_id":     currentConfig.Dauth.Client_id,
-		"redirect_uri":  config.Config("CALLBACK_PAGE_URI"),
-		"grant_type":    currentConfig.Dauth.Grant_type,
+		"client_secret": CurrentConfig.Dauth.Client_secret,
+		"client_id":     CurrentConfig.Dauth.Client_id,
+		"redirect_uri":  CurrentConfig.Dauth.Redirect_uri,
+		"grant_type":    CurrentConfig.Dauth.Grant_type,
 	}
 	tokenQueryString, err := encodeQuery(params)
 	if err != nil {
-		panic(fmt.Errorf("Error with url"))
+		l.Errorf(("Couldn't encode error, due to %v"), err)
+		// TODO: shd do proper error handling instead of using panic
+		panic(fmt.Errorf("error with url"))
 	}
+
+	l.Debugf("Attempting to get user token from dauth")
 	tokenEncodedData := tokenQueryString.Encode()
 	tokenHeader := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 	tokenResponse, err := makeRequest(http.MethodPost, "https://auth.delta.nitt.edu/api/oauth/token", tokenHeader, tokenEncodedData)
 	if err != nil {
-		return "", "", false, err
+		l.Errorf("Fetching user token resulted in an error, %v", err)
+		return "", "", models.User{}, false, err
 	}
 	var tokenResult TokenResult
+
+	// l.Debugf("Got the response %v when trying to fetch user token", tokenResponse)
 	err = json.Unmarshal(tokenResponse, &tokenResult)
 	if err != nil {
-		return "", "", false, err
+		l.Errorf("Unable to unmarshal the the user token")
+		return "", "", models.User{}, false, err
 	}
+	l.Debugf("Got the response %v when trying to fetch user token", tokenResult)
+
+	l.Debugf("trying to fetch user data using user token with %v", tokenResult.Token)
+
 	resourceHeader := map[string]string{"Authorization": "Bearer " + tokenResult.Token}
 	userResponse, err := makeRequest(http.MethodPost, "https://auth.delta.nitt.edu/api/resources/user", resourceHeader, url.Values{}.Encode())
 	if err != nil {
-		return "", "", false, err
+		l.Errorf("Fetching user data resulted in an error, %v", err)
+		return "", "", models.User{}, false, err
 	}
+
 	var userResult UserResult
 	err = json.Unmarshal(userResponse, &userResult)
+	l.Errorf("Unable to unmarshal the the user token")
 	if err != nil {
-		return "", "", false, err
+		l.Errorf("Unable to unmarshal the the user response")
+		return "", "", models.User{}, false, err
 	}
+	l.Debugf("Got the response %v when trying to fetch user user data", userResult)
 	var gender models.Gender
 	if userResult.Gender == "MALE" {
 		gender = models.Male
 	} else {
 		gender = models.Female
 	}
-	user, isUser := models.GetOnCondition("email", userResult.Email)
+
+	l.Infof("Successfully fetched user data from Dauth. Now checking if a user record exists locally")
+
+	user, isUnsuccessful := models.GetOnCondition("email", userResult.Email)
 	isNewUser := false
-	if isUser {
+	if isUnsuccessful {
 		isNewUser = true
+		l.Debugf("A user record doesn't exist in database, creating one")
 		user = models.CreateNewUser(userResult.Email, userResult.Name, gender)
 	}
 	userToken, _ := createToken(jwt.MapClaims{
 		"id":    user.ID,
 		"email": user.Email,
-		"exp":   time.Now().Add(time.Duration(currentConfig.Cookie.User.Expires) * time.Hour).Unix(),
+		"exp":   time.Now().Add(time.Duration(CurrentConfig.Cookie.User.Expires) * time.Hour).Unix(),
 	})
 
 	refreshToken, _ := createToken(jwt.MapClaims{
 		"id":  user.ID,
-		"exp": time.Now().Add(time.Duration(currentConfig.Cookie.Refresh.Expires) * time.Hour).Unix(),
+		"exp": time.Now().Add(time.Duration(CurrentConfig.Cookie.Refresh.Expires) * time.Hour).Unix(),
 	})
 	user.RefreshToken = refreshToken
 	config.DB.Save(&user)
-	return userToken, refreshToken, isNewUser, nil
+	l.Infof("isNewUser=%v, Created new user and refresh token for the user", isNewUser)
+	isNewUser = (user.Description == "")
+	return userToken, refreshToken, user, isNewUser, nil
 }
 
-func checkAuth(c echo.Context) (http.Cookie, bool, bool) {
-	userCookie, err := c.Cookie(currentConfig.Cookie.User.Name)
-	type userClaims struct {
-		Email string `json:"email"`
-		ID    int    `json:"id"`
-		jwt.StandardClaims
-	}
-	if err == nil {
-		token, err := jwt.ParseWithClaims(userCookie.Value, &userClaims{}, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-			}
-
-			return hmacSampleSecret, nil
-		})
-		if err == nil {
-			if _, ok := token.Claims.(*userClaims); ok && token.Valid {
-				return http.Cookie{}, false, true
-			}
-		}
-	}
-	type refreshClaims struct {
-		ID int `json:"id"`
-		jwt.StandardClaims
-	}
-	refreshCookie, err := c.Cookie(currentConfig.Cookie.Refresh.Name)
-	if err != nil {
-		return http.Cookie{}, false, false
-	}
-	token, err := jwt.ParseWithClaims(refreshCookie.Value, &refreshClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-
-		return hmacSampleSecret, nil
-	})
-	if err != nil {
-		return http.Cookie{}, false, false
-	}
-	refresh, ok := token.Claims.(*refreshClaims)
-	if !ok || !token.Valid {
-		return http.Cookie{}, false, false
-	}
-	var user models.User
-	err = config.DB.Where("id = ?", refresh.ID).First(&user).Error
-	if err != nil {
-		return http.Cookie{}, false, false
-	}
-	if token.Raw != user.RefreshToken {
-		return http.Cookie{}, false, false
-	}
-	userToken, _ := createToken(jwt.MapClaims{
-		"id":    user.ID,
-		"email": user.Email,
-		"exp":   time.Now().Add(time.Duration(currentConfig.Cookie.User.Expires) * time.Hour).Unix(),
-	})
-	userNewCookie := http.Cookie{
-		Name:   currentConfig.Cookie.User.Name,
-		Value:  userToken,
-		Path:   "/",
-		MaxAge: int((time.Duration(currentConfig.Cookie.User.Expires) * time.Hour).Seconds()),
-	}
-	return userNewCookie, true, true
-}
-
-func getCurrentUser(c echo.Context) (models.User, error) {
-	cookie, err := c.Cookie(currentConfig.Cookie.User.Name)
+// Gets the currently logged in user with the cookie
+func GetCurrentUser(c echo.Context) (models.User, error) {
+	cookie, err := c.Cookie(CurrentConfig.Cookie.User.Name)
 	if err != nil {
 		fmt.Println("No cookie")
-		return models.User{}, fmt.Errorf("Couldn't find cookie")
+		return models.User{}, fmt.Errorf("couldn't find cookie")
 	}
-	type customClaims struct {
-		Email string `json:"email"`
-		ID    int    `json:"id"`
-		jwt.StandardClaims
-	}
-	token, err := jwt.ParseWithClaims(cookie.Value, &customClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(cookie.Value, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return hmacSampleSecret, nil
+		return HmacSampleSecret, nil
 	})
 	if err != nil {
 		return models.User{}, err
 	}
-	if claims, ok := token.Claims.(*customClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
 		var user models.User
 		err = nil
 		err = config.DB.Where("email = ?", claims.Email).First(&user).Error
 		return user, err
 	} else {
-		return models.User{}, fmt.Errorf("Invalid token")
+		return models.User{}, fmt.Errorf("invalid token")
 	}
 }

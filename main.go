@@ -9,6 +9,7 @@ import (
 
 	"github.com/delta/orientation-backend/auth"
 	"github.com/delta/orientation-backend/config"
+	"github.com/delta/orientation-backend/core"
 	"github.com/delta/orientation-backend/models"
 )
 
@@ -21,20 +22,19 @@ func main() {
 
 	config.DB.AutoMigrate(&models.User{}, &models.SpriteSheet{})
 	// Create dummy spritesheet for testing
-	for i := 1; i < 5; i++ {
-		config.DB.Create(&models.SpriteSheet{ID: i})
-	}
+	// for i := 1; i < 5; i++ {
+	// 	config.DB.Create(&models.SpriteSheet{ID: i})
+	// }
 
 	port := config.Config("PORT")
 	addr := fmt.Sprintf(":%s", port)
 
 	e := echo.New()
+	e.Validator = core.NewValidator()
 	e.Use(middleware.Recover())
-
-	e.GET("/auth", auth.Auth)
-	e.Group("/api/auth", middleware.CORSWithConfig(middleware.CORSConfig{
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOriginFunc: allowOrigin,
-		AllowMethods:    []string{"GET"},
+		AllowMethods:    []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
 		AllowHeaders: []string{
 			echo.HeaderAccessControlRequestMethod,
 			echo.HeaderAccessControlRequestHeaders,
@@ -49,9 +49,15 @@ func main() {
 			echo.HeaderAccessControlAllowCredentials,
 		},
 	}))
-	e.GET("/api/auth/callback", auth.CallBack)
-	e.GET("/api/auth/logout", auth.LogOut)
-	e.GET("/api/auth/checkAuth", auth.CheckAuth)
+
+	apiGroup := e.Group("/api", auth.AuthMiddlewareWrapper(auth.AuthMiddlewareConfig{
+		Skipper: auth.SkipperFunc,
+	}))
+
+	core.RegisterRoutes(apiGroup)
+	authGroup := apiGroup.Group("/auth")
+
+	auth.RegisterRoutes(authGroup)
 
 	e.Logger.Fatal(e.Start(addr))
 }

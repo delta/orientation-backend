@@ -1,26 +1,22 @@
 package auth
 
-var totalSprites = 4
+// var totalSprites = 4
+import "github.com/golang-jwt/jwt"
 
-type TokenResult struct {
-	Type    string `json:"token_type"`
-	Token   string `json:"access_token"`
-	State   string `json:"state"`
-	Expires int64  `json:"expires_in"`
+type CustomClaims struct {
+	Email string `json:"email"`
+	ID    int    `json:"id"`
+	jwt.StandardClaims
 }
 
-type UserResult struct {
-	Email  string `json:"email"`
-	Name   string `json:"name"`
-	Gender string `json:"gender"`
-}
-
-type isAuthResult struct {
-	Status bool `json:"status"`
+type ErrorResponse struct {
+	Message string `json:"message"`
+	Error   error  `json:"error"`
 }
 
 var uiURL string = "http://localhost:3000"
 
-var currentConfig = getConfig()
+// Dauth Config
+var CurrentConfig = getConfig()
 
-var hmacSampleSecret = []byte(currentConfig.Cookie.Jwt_secret)
+var HmacSampleSecret = []byte(CurrentConfig.Cookie.Jwt_secret)

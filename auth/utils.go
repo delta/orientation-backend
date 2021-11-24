@@ -1,7 +1,10 @@
 package auth
 
 import (
-	"io/ioutil"
+	"bytes"
+	"errors"
+
+	// "net/http"
 	"net/http"
 	"net/url"
 	"strings"
@@ -23,9 +26,18 @@ func makeRequest(method string, url string, headers map[string]string, encodedDa
 	if err != nil {
 		return returnEmptyByte, err
 	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(response.Body)
+
+	// non 2XX respones are not considered as error by golang
+	if response.StatusCode != 200 {
+		return returnEmptyByte, errors.New("request failed")
+	}
+
 	defer response.Body.Close()
-	temp, _ := ioutil.ReadAll(response.Body)
-	return temp, nil
+	// temp, _ := ioutil.ReadAll(response.Body)
+	// fmt.Println("\n", temp)
+	return buf.Bytes(), nil
 }
 
 func encodeQuery(p map[string]string) (url.Values, error) {
@@ -38,7 +50,7 @@ func encodeQuery(p map[string]string) (url.Values, error) {
 
 func createToken(claims jwt.Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(hmacSampleSecret)
+	tokenString, err := token.SignedString(HmacSampleSecret)
 	if err != nil {
 		return "", err
 	}
