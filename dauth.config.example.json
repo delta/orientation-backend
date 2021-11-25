@@ -2,13 +2,16 @@
   "dauth": {
     "client_id": "",
     "client_secret": "",
+    "redirect_uri": "",
     "grant_type": "authorization_code",
     "nonce": "",
     "response_type": "code",
     "state": "",
-    "scope": ["email", "user"]
+    "scope": [
+      "email",
+      "user"
+    ]
   },
-
   "cookie": {
     "refresh_cookie": {
       "name": "UtopiaRefresh",

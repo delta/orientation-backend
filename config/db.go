@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 
-	"github.com/delta/orientation-backend/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -21,17 +20,11 @@ func initDB() {
 	// db connection str
 	connStr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=true", dbUser, dbPwd, dbHost, dbPort, dbName)
 
-	//connecting to db
+	// connecting to db
 	db, err := gorm.Open(mysql.Open(connStr), &gorm.Config{})
-
 	if err != nil {
 		panic(fmt.Errorf("error connecting DB, %+v", err))
 	}
 
-	db.AutoMigrate(&models.User{}, &models.SpriteSheet{})
-	// Create dummy spritesheet for testing
-	// for i := 1; i < 5; i++ {
-	//   db.Create(&models.SpriteSheet{ID: i})
-	// }
 	DB = db
 }
