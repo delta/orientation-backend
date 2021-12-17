@@ -11,6 +11,7 @@ import (
 	"github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/core"
 	"github.com/delta/orientation-backend/models"
+	"github.com/delta/orientation-backend/ws"
 )
 
 func allowOrigin(origin string) (bool, error) {
@@ -19,8 +20,13 @@ func allowOrigin(origin string) (bool, error) {
 
 func main() {
 	config.InitConfig()
+	models.Init()
+	ws.InitRooms()
 
-	config.DB.AutoMigrate(&models.User{}, &models.SpriteSheet{})
+	// broadcasts users position to each room every *x* seconds
+	go ws.RoomBroadcast()
+
+	config.DB.AutoMigrate(&models.User{}, &models.SpriteSheet{}, &models.Room{})
 	// Create dummy spritesheet for testing
 	// for i := 1; i < 5; i++ {
 	// 	config.DB.Create(&models.SpriteSheet{ID: i})
@@ -55,8 +61,9 @@ func main() {
 	}))
 
 	core.RegisterRoutes(apiGroup)
-	authGroup := apiGroup.Group("/auth")
+	ws.RegisterRoutes(apiGroup)
 
+	authGroup := apiGroup.Group("/auth")
 	auth.RegisterRoutes(authGroup)
 
 	e.Logger.Fatal(e.Start(addr))

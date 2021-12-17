@@ -11,6 +11,7 @@ import (
 func RegisterRoutes(v *echo.Group) {
 	v.GET("/user/me", GetUserData)
 	v.PUT("/user/signup", UpdateUserData)
+	// v.GET("/ws", ws.WsHandler)
 }
 
 // returns the user data with the given credentials
