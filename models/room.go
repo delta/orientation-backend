@@ -5,10 +5,11 @@ import (
 )
 
 type Room struct {
-	ID        int       `gorm:"primaryKey;autoIncrement"`
-	Name      string    `gorm:"unique"`
-	CreatedAt time.Time `gorm:"not null"`
-	UpdatedAt time.Time `gorm:"not null"`
+	ID        int         `gorm:"primaryKey;autoIncrement"`
+	Name      string      `gorm:"unique"`
+	MiniGames []MiniGames `gorm:"foreignKey:RoomID"`
+	CreatedAt time.Time   `gorm:"not null"`
+	UpdatedAt time.Time   `gorm:"not null"`
 }
 
 func GetAllRooms() ([]string, error) {

@@ -26,12 +26,6 @@ func main() {
 	// broadcasts users position to each room every *x* seconds
 	go ws.RoomBroadcast()
 
-	config.DB.AutoMigrate(&models.User{}, &models.SpriteSheet{}, &models.Room{})
-	// Create dummy spritesheet for testing
-	// for i := 1; i < 5; i++ {
-	// 	config.DB.Create(&models.SpriteSheet{ID: i})
-	// }
-
 	port := config.Config("PORT")
 	addr := fmt.Sprintf(":%s", port)
 
