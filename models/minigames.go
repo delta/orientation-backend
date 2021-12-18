@@ -1,11 +1,11 @@
 package models
 
-import "time"
+type MiniGame struct {
+	ID     int    `gorm:"column:id;primaryKey;AUTO_INCREMENT"`
+	Name   string `gorm:"column:name;not null"`
+	RoomID int    `gorm:"column:roomId; not null"`
+}
 
-type MiniGames struct {
-	ID        int    `gorm:"primaryKey;autoIncrement"`
-	Name      string `gorm:"unique"`
-	RoomID    int
-	CreatedAt time.Time `gorm:"not null"`
-	UpdatedAt time.Time `gorm:"not null"`
+func (MiniGame) TableName() string {
+	return "MiniGame"
 }

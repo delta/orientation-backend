@@ -8,11 +8,9 @@ import (
 	"github.com/delta/orientation-backend/config"
 )
 
-var totalSprites = 4
-
 func CreateNewUser(email string, name string, gender Gender) User {
 	rand.Seed(time.Now().UnixNano())
-	user := User{Email: email, Name: name, Gender: gender, SpriteSheetID: rand.Intn(totalSprites) + 1}
+	user := User{Email: email, Name: name, Gender: gender}
 	return user
 }
 

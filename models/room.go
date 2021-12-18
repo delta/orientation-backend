@@ -1,15 +1,12 @@
 package models
 
-import (
-	"time"
-)
-
 type Room struct {
-	ID        int         `gorm:"primaryKey;autoIncrement"`
-	Name      string      `gorm:"unique"`
-	MiniGames []MiniGames `gorm:"foreignKey:RoomID"`
-	CreatedAt time.Time   `gorm:"not null"`
-	UpdatedAt time.Time   `gorm:"not null"`
+	ID   int    `gorm:"column:id;primaryKey;autoIncrement"`
+	Name string `gorm:"column:name;not null;unique"`
+}
+
+func (Room) TableName() string {
+	return "Room"
 }
 
 func GetAllRooms() ([]string, error) {

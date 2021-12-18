@@ -1,9 +1,11 @@
 package models
 
-import "time"
-
 type LeaderBoard struct {
-	ID        int       `gorm:"primaryKey;autoIncrement"`
-	CreatedAt time.Time `gorm:"not null"`
-	UpdatedAt time.Time `gorm:"not null"`
+	gameId int `gorm:"column:miniGameId;not null"`
+	userId int `gorm:"column:userid;not null"`
+	score  int `gorm:"column:score;not null"`
+}
+
+func (LeaderBoard) TableName() string {
+	return "LeaderBoard"
 }
