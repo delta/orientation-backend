@@ -13,6 +13,4 @@ var log *logrus.Logger
 func Init() {
 	db = config.DB
 	log = config.Log
-	// run migrations
-	db.AutoMigrate(&User{}, &SpriteSheet{}, &Room{})
 }
