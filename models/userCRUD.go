@@ -19,7 +19,7 @@ func CreateNewUser(email string, name string, gender Gender) User {
 func GetOnCondition(condition string, value string) (User, bool) {
 	cond := fmt.Sprintf("%s = ?", condition)
 	var user User
-	err := config.DB.Where(cond, value).First(&user)
+	err := config.DB.Where(cond, value).First(&user).Error
 	fmt.Println(err)
 	if err != nil {
 		return User{}, true
