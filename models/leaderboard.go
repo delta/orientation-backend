@@ -1,9 +1,9 @@
 package models
 
 type LeaderBoard struct {
-	gameId int `gorm:"column:miniGameId;not null"`
-	userId int `gorm:"column:userid;not null"`
-	score  int `gorm:"column:score;not null"`
+	GameId int `gorm:"column:miniGameId;primary_key"`
+	UserId int `gorm:"column:userid;primary_key"`
+	Score  int `gorm:"column:score;not null"`
 }
 
 func (LeaderBoard) TableName() string {
