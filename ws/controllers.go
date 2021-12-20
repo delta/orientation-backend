@@ -2,9 +2,7 @@ package ws
 
 import (
 	"encoding/json"
-	"net/http"
 
-	"github.com/delta/orientation-backend/core"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -20,14 +18,14 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 
 		if err != nil {
 			l.Errorf("Error readig from socket connection %+v", err)
-			return c.JSON(http.StatusInternalServerError, core.ErrorResponse{Message: "error reading from socket connection"})
+			return nil
 		}
 
 		var requestMessage requestMessage
 
 		if err := json.Unmarshal(p, &requestMessage); err != nil {
 			l.Errorf("error parsing request message %v", err)
-			return c.JSON(http.StatusInternalServerError, core.ErrorResponse{Message: "error parsing socket message"})
+			return nil
 		}
 
 		switch requestMessage.MessageType {
@@ -44,12 +42,9 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 			json.Unmarshal(reqJson, &registerUserRequest)
 
 			if err := client.register(&registerUserRequest); err != nil {
-				l.Errorf("error registering user %s in %s room", client.id, registerUserRequest.Room)
-				return c.JSON(http.StatusInternalServerError, core.ErrorResponse{Message: "error registering user"})
+				l.Errorf("error registering user %s in %s room, err : %+v", client.id, registerUserRequest.Room, err)
+				return nil
 			}
-			user := newUser(client.name, registerUserRequest.Room, registerUserRequest.Position)
-			// broadcasts new user data to all the connected clients
-			broadcastNewuser(user)
 		/*
 			`user-move` type request message
 			updates user position in redis.
@@ -61,8 +56,7 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 
 			if err := client.move(&moverequest); err != nil {
 				l.Errorf("error updating user %d position in redis : %+v", client.id, err)
-				return c.JSON(http.StatusInternalServerError, core.ErrorResponse{Message: "error updating user data"})
-
+				return nil
 			}
 		/*
 			`change-room` updates user room in redis and
@@ -76,15 +70,13 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 
 			if err := client.changeRoom(&changeRoomRequest); err != nil {
 				l.Errorf("error changing user %s room %+v", client.id, err)
-				return c.JSON(http.StatusInternalServerError, core.ErrorResponse{Message: "error updating user room"})
+				return nil
 			}
-			user := newUser(client.name, changeRoomRequest.To, changeRoomRequest.Position)
-			// broadcasts updated user data to all the connected clients
-			broadcastNewuser(user)
 
 		default:
 			l.Debugln("Invalid socket request message type")
-			return c.JSON(http.StatusBadRequest, core.ErrorResponse{Message: "invalid request message type"})
+			// closing the ws connection
+			return nil
 		}
 	}
 }

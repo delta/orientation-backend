@@ -11,6 +11,7 @@ import (
 	"github.com/delta/orientation-backend/models"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
 )
 
 // this type represents the room and its connection pool
@@ -20,8 +21,17 @@ type room struct {
 	sync.Mutex
 }
 
+type userRoomMap struct {
+	sync.RWMutex
+	userRoom map[int]string
+}
+
 // hashmap contains all the rooms and it's connection pool
 var rooms map[string]*room = make(map[string]*room)
+
+var userRooms *userRoomMap = &userRoomMap{
+	userRoom: make(map[int]string),
+}
 
 func InitRooms() {
 	// fetching list of rooms from db
@@ -47,6 +57,10 @@ func InitRooms() {
 
 // broadcasts users postion to all the rooms(respectively) every **x** seconds
 func RoomBroadcast() {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/RoomBroadcast"})
+
+	l.Debug("Starting room broadcasts")
+
 	// x, broadcasting frequency
 	x, _ := strconv.Atoi(config.Config("x"))
 
@@ -61,8 +75,10 @@ func RoomBroadcast() {
 }
 
 // get all users of that romm from redis, this method is not **thread safe**
-func (r *room) getAllUsers() ([]string, error) {
-	config.Log.Debugf("Fetching all users of %s room", r.name)
+func (r *room) getRoomUsers() ([]string, error) {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/getRoomUsers"})
+
+	l.Debugf("Fetching all users of %s room", r.name)
 
 	keys := make([]string, 0, len(r.pool))
 	var users []string
@@ -96,19 +112,21 @@ func (r *room) getAllUsers() ([]string, error) {
 // broadcast users postions in a room to all the clients
 // in the connection pool
 func (r *room) broadcastUsers() {
-	config.Log.Debugf("Broadcasting users data to %s room", r.name)
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUsers"})
+
+	l.Debugf("Broadcasting users data to %s room", r.name)
 
 	r.Lock()
 	defer r.Unlock()
-	users, err := r.getAllUsers()
+	users, err := r.getRoomUsers()
 
 	if err != nil {
-		config.Log.Errorf("error fetching all users from %s room %+v", r.name, err)
+		l.Errorf("error fetching all users from %s room %+v", r.name, err)
 		return
 	}
 
 	if len(users) == 0 {
-		config.Log.Infof("no users in connection pool - %s room", r.name)
+		l.Infof("no users in connection pool - %s room", r.name)
 		return
 	}
 
@@ -123,16 +141,21 @@ func (r *room) broadcastUsers() {
 		v.WriteMessage(websocket.TextMessage, broadcastJsonData)
 	}
 
-	config.Log.Infof("Broadcast sucessfull for %s room", r.name)
+	l.Infof("Broadcast successful for %s room", r.name)
 }
 
 // broadcast the newly joined user data
 // to all the clients in the room connection pool
+// **not thread safe**
 func broadcastNewuser(user *user) {
-	room := rooms[user.Room]
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastNewuser"})
+	userRoom, ok := userRooms.userRoom[user.Id]
 
-	room.Lock()
-	defer room.Unlock()
+	if !ok {
+		l.Error("error getting user room from userMap")
+	}
+
+	room := rooms[userRoom]
 
 	response := responseMessage{
 		MessageType: "new-user",
@@ -145,5 +168,5 @@ func broadcastNewuser(user *user) {
 		v.WriteMessage(websocket.TextMessage, responseJson)
 	}
 
-	config.Log.Infof("broadcast new user to %s room is sucessful", room.name)
+	l.Infof("broadcast new user to %s room is successful", room.name)
 }

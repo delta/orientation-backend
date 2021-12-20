@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+</body>
+
+<script>
+    const registerData = {
+        messageType: "user-register",
+        data: {
+            room: "room1",
+            position: {
+                x: 2,
+                y: 4,
+                direction: "left"
+            }
+        }
+    }
+
+    const userMoveData = {
+        messageType: "user-move",
+        data: {
+            room: "room1",
+            position: {
+                x: 10,
+                y: 20,
+                direction: "right"
+            }
+        }
+    }
+
+    const changeRoomData = {
+        messageType: "change-room",
+        data: {
+            from: "room1",
+            to: "room2",
+            position: {
+                x: 100,
+                y: 200,
+                direction: "up"
+            }
+        }
+
+    }
+
+    const socket = new WebSocket('ws://localhost:8000/api/ws')
+    socket.onopen = () => {
+        console.log("socket connection opened")
+    }
+    socket.onmessage = (event) => {
+        console.log("socket message recieved", JSON.parse(event.data))
+
+        const data = JSON.parse(event.data)
+        if (data.MessageType == "room-broadcast") {
+            console.log(JSON.parse(data.Data));
+        }
+    }
+    socket.onerror = (event) => {
+        console.log(event)
+        console.log("socket error")
+    }
+
+    socket.onclose = (event) => {
+        console.log(event)
+        console.log("connection closed by the server")
+    }
+
+    let close = () => {
+        console.log("closing ws connection")
+        socket.close()
+    }
+
+    let register = () => {
+        socket.send(JSON.stringify(registerData))
+    }
+
+    let move = () => {
+        socket.send(JSON.stringify(userMoveData))
+    }
+
+    let changeRoom = () => {
+        socket.send(JSON.stringify(changeRoomData))
+    }
+
+</script>
+
+</html>

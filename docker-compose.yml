@@ -34,5 +34,3 @@ services:
     container_name: orientation_redis
     image: redis
     restart: always
-    volumes:
-      - ./orientation_redis_volume:/data

@@ -7,6 +7,7 @@ import (
 
 	"github.com/delta/orientation-backend/config"
 	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -23,21 +24,22 @@ type client struct {
 
 // user type, represents the saved user in redis
 type user struct {
-	Name     string
-	Room     string
+	Id       int
 	Position userPosition
 }
 
 // register handler, adds the client to the
 // connection pool and redis
 func (c *client) register(u *registerUserRequest) error {
-	config.Log.Debugf("registering new user %d in %s room", c.id, u.Room)
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/register"})
+
+	l.Debugf("registering new user %d in %s room", c.id, u.Room)
 
 	if !isRoomExist(u.Room) {
 		return errRoomNotFound
 	}
 
-	user := newUser(c.name, u.Room, u.Position)
+	user := newUser(c.id, u.Room, u.Position)
 
 	room := rooms[u.Room]
 
@@ -46,6 +48,11 @@ func (c *client) register(u *registerUserRequest) error {
 		return err
 	}
 
+	// adding user room in userRoom map
+	userRooms.Lock()
+	userRooms.userRoom[c.id] = u.Room
+	userRooms.Unlock()
+
 	// locking connection pool
 	room.Lock()
 	defer room.Unlock()
@@ -53,13 +60,20 @@ func (c *client) register(u *registerUserRequest) error {
 	// add ws connection handler to the pool
 	room.pool[c.id] = c.wsConn
 
+	l.Infof("register new user %d in %s room successful", c.id, u.Room)
+
+	// broadcasts new user data to all the connected clients in that room
+	broadcastNewuser(user)
+
 	return nil
 }
 
 // de-register handler, removes the client from
 // the connection pool and redis
 func (c *client) deRegister() error {
-	config.Log.Debugf("de-registering user %d from connection pool", c.id)
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/deRegister"})
+
+	l.Debugf("de-registering user %d from connection pool", c.id)
 
 	user, err := getUser(c.id)
 
@@ -67,8 +81,18 @@ func (c *client) deRegister() error {
 		return err
 	}
 
-	room := rooms[user.Room]
+	userRooms.Lock()
+	defer userRooms.Unlock()
 
+	userRoom, ok := userRooms.userRoom[c.id]
+
+	if !ok {
+		l.Error("error getting user room from userMap")
+	}
+
+	room := rooms[userRoom]
+
+	delete(userRooms.userRoom, c.id)
 	// deleting client from connection pool
 	room.Lock()
 	defer room.Unlock()
@@ -79,12 +103,16 @@ func (c *client) deRegister() error {
 		return err
 	}
 
+	l.Infof("de-registering user %d from connection pool successful", c.id)
+
 	return nil
 }
 
 // change room handler, changes user room and updates connection pool
 func (c *client) changeRoom(cr *changeRoomRequest) error {
-	config.Log.Debugf("changing user from %s room to %s room", cr.From, cr.To)
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/changeRoom"})
+
+	l.Debugf("changing user from %s room to %s room", cr.From, cr.To)
 
 	if !(isRoomExist(cr.From) && isRoomExist(cr.To)) {
 		return errRoomNotFound
@@ -111,21 +139,33 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 
 	// adding client ws connection handler to new room pool
 	toRoom.Lock()
+	userRooms.Lock()
+
+	userRooms.userRoom[c.id] = cr.To
 	toRoom.pool[c.id] = conn
-	toRoom.Unlock()
 
 	// updating user data(position + room)
-	user.Room = cr.To
 	user.Position = cr.Position
 
 	// update user data in redis
 	user.upsertUser(c.id)
+
+	// broadcasts new user data to all the connected clients in that room
+	broadcastNewuser(user)
+
+	userRooms.Unlock()
+	toRoom.Unlock()
+
+	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
 
 	return nil
 }
 
 // move handler, updates user data(position and direction) in redis
 func (c *client) move(m *moveRequest) error {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/move"})
+
+	l.Debugf("updating %s user position in room", c.id)
 	// checking if user exists in redis storage
 	user, err := getUser(c.id)
 
@@ -137,22 +177,23 @@ func (c *client) move(m *moveRequest) error {
 		return fmt.Errorf("user %d not exist in %s room", c.id, m.Room)
 	}
 
-	user.Name = c.name
-	user.Room = m.Room
+	user.Id = c.id
 	user.Position = m.Position
 
 	// redis is single threaded, its thread safe :)
 	if err := user.upsertUser(c.id); err != nil {
 		return err
 	}
+
+	l.Infof("updating %s user position in room is successful", c.id)
+
 	return nil
 }
 
 // create new user object
-func newUser(name, room string, userPosition userPosition) *user {
+func newUser(id int, room string, userPosition userPosition) *user {
 	return &user{
-		name,
-		room,
+		id,
 		userPosition,
 	}
 }

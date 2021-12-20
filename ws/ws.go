@@ -3,7 +3,6 @@ package ws
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/delta/orientation-backend/auth"
 	"github.com/delta/orientation-backend/config"
@@ -19,11 +18,7 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		host := r.Host
-		if i := strings.Index(host, ":"); i != -1 {
-			host = host[:i]
-		}
-		return config.Config("HOST") == host
+		return true
 	},
 }
 
@@ -69,11 +64,12 @@ func wsHandler(c echo.Context) error {
 		closeWs(conn, client)
 	}()
 
-	// getting user form redis
-	_, err = getUser(user.ID)
-
 	// check if user already established connection
-	if err == nil {
+	userRooms.RLock()
+
+	_, ok := userRooms.userRoom[user.ID]
+
+	if ok {
 		response := &responseMessage{
 			MessageType: "already-conncted",
 			Data:        "user already an established conncetion with the server",
@@ -84,10 +80,13 @@ func wsHandler(c echo.Context) error {
 		l.Errorf("%s user already have an established connection with the server", user.Username)
 
 		// closing the ws connection
-		return c.JSON(http.StatusBadRequest, core.ErrorResponse{Message: "user already have an established connection with the server"})
+		return nil
 	}
 
-	// unary(request -> response) handles all the ws messages
-	return unaryController(conn, client, l, c)
+	userRooms.RUnlock()
 
+	// unary(request -> response) handles all the ws messages
+	unaryController(conn, client, l, c)
+
+	return nil
 }
