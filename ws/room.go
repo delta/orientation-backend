@@ -67,7 +67,7 @@ func RoomBroadcast() {
 	for _, v := range rooms {
 		go func(r *room) {
 			for {
-				r.broadcastUsers()
+				r.roomBroadcast()
 				time.Sleep(time.Second * time.Duration(x))
 			}
 		}(v)
@@ -111,8 +111,8 @@ func (r *room) getRoomUsers() ([]string, error) {
 
 // broadcast users postions in a room to all the clients
 // in the connection pool
-func (r *room) broadcastUsers() {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUsers"})
+func (r *room) roomBroadcast() {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/roomBroadcast"})
 
 	l.Debugf("Broadcasting users data to %s room", r.name)
 
