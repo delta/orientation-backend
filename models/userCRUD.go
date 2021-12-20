@@ -16,10 +16,10 @@ func CreateNewUser(email string, name string, gender Gender) User {
 
 // find the user with the given condition
 // return the found user, and true if there was an error
-func GetOnCondition(condition string, value string) (User, bool) {
+func GetOnCondition(condition string, value interface{}) (User, bool) {
 	cond := fmt.Sprintf("%s = ?", condition)
 	var user User
-	err := config.DB.Where(cond, value).First(&user)
+	err := config.DB.Where(cond, value).First(&user).Error
 	fmt.Println(err)
 	if err != nil {
 		return User{}, true
