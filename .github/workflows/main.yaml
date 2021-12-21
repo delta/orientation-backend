@@ -25,12 +25,10 @@ jobs:
       - name: Setup env file
         run: cp .sample.env .env
 
-      # migration action, uncomment this after adding atleast one migrations
-
-      # - name: Run Migrations
-      #   run: |
-      #     go get -tags 'mysql'  -u github.com/golang-migrate/migrate/v4/cmd/migrate/
-      #     migrate -path "./migrations" -database "mysql://root:password@/utopia" up
+      - name: Run Migrations
+        run: |
+          go get -tags 'mysql'  -u github.com/golang-migrate/migrate/v4/cmd/migrate/
+          migrate -path "./migrations" -database "mysql://root:password@/utopia" up
 
       - name: Go Build
         run: go build .
