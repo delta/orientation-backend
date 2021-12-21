@@ -31,7 +31,6 @@ func (r *userUpdateRequest) populate(u *models.User) {
 	r.User.Email = u.Email
 	r.User.Name = u.Name
 	r.User.RefreshToken = u.RefreshToken
-	r.User.SpriteSheetID = u.SpriteSheetID
 	r.User.Gender = u.Gender
 	r.User.Department = u.Department
 

@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// DB connection object, this will be used to connect and do operation in db
+// mysql connection object
 var DB *gorm.DB
 
 func initDB() {

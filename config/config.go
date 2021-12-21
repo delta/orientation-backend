@@ -4,4 +4,5 @@ package config
 func InitConfig() {
 	initLogger()
 	initDB()
+	initRDB()
 }

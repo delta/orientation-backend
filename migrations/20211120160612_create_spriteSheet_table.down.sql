@@ -1,1 +1,1 @@
-DROP TABLE `sprite_sheets`
+DROP TABLE IF EXISTS SpriteSheet;

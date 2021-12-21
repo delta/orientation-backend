@@ -1,1 +1,5 @@
-CREATE TABLE `sprite_sheets` (`id` bigint AUTO_INCREMENT,PRIMARY KEY (`id`))
+CREATE TABLE IF NOT EXISTS SpriteSheet(
+    id bigint UNSIGNED NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY (id) REFERENCES User(id)
+);

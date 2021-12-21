@@ -19,14 +19,16 @@ func (e Gender) Value() (driver.Value, error) {
 }
 
 type User struct {
-	ID            int    `gorm:"primary_key;auto_increment" json:"-"`
-	Email         string `gorm:"unique;not null"`
-	Name          string
-	Username      string `gorm:"default:null"`
-	Description   string
-	Gender        Gender `sql:"type:ENUM('male', 'female')"`
-	Department    string `gorm:"default:null"`
-	RefreshToken  string `gorm:"default:null"`
-	SpriteSheetID int
-	Spritesheet   SpriteSheet `gorm:"foreignKey:SpriteSheetID"`
+	ID           int    `gorm:"column:id;primary_key;AUTO_INCREMENT"`
+	Email        string `gorm:"column:email;unique;not null"`
+	Name         string `gorm:"column:name"`
+	Username     string `gorm:"column:userName;default:null"`
+	Description  string `gorm:"column:description;default:null"`
+	Gender       Gender `gorm:"column:gender"`
+	Department   string `gorm:"column:department;default:null"`
+	RefreshToken string `gorm:"column:refreshToken;default:null"`
+}
+
+func (User) TableName() string {
+	return "User"
 }

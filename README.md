@@ -4,6 +4,8 @@
 
 - Go 1.16+
 - MySQL
+- redis [download link](https://redis.io/download)
+- [air](https://github.com/cosmtrek/air) (for live reload) [installation link](https://github.com/cosmtrek/air#prefer-installsh)
 
 ### Migrations
 
@@ -33,5 +35,22 @@ migarte -path "./migrations"  -database "mysql://root:YOUR_MYSQL_PASSWORD@/DB_NA
 
 ### Setup
 
-- Run `cp .sample.env .env`, fill in the env variables
-- Run `go run main.go`
+- Run `cp .sample.env .env`, fill the env variables
+- Run `cp dauth.config.example.json dauth.config.json`, fill the required creds
+- start server
+
+  - development
+
+    ```bash
+    air
+    ```
+
+  - production
+    ```bash
+    go run main.go
+    ```
+
+### Docker Setup
+ - Install docker and docker-compose
+ - Run `cp .docker.sample.env .docker.env`, fill the env varaiables
+ - Run `docker-compose up` to start the services

@@ -13,7 +13,7 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-var authRoutes []string = []string{"/api/auth/callback", "/api/user/signup"}
+var authRoutes []string = []string{"/api/auth/callback", "/api/user/signup", "/api/auth/dummyLogin"}
 
 func stringInSlice(s string, list []string) bool {
 	for _, a := range list {
