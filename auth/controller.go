@@ -131,3 +131,23 @@ func GetCurrentUser(c echo.Context) (models.User, error) {
 		return models.User{}, fmt.Errorf("invalid token")
 	}
 }
+
+func createDummyUser(roll int) (string, string) {
+	email := fmt.Sprintf("%d@nitt.edu", roll)
+	user, no_user := models.GetOnCondition("email", email)
+	if no_user {
+		user = models.CreateNewUser(email, "A", models.Male)
+	}
+	userToken, _ := createToken(jwt.MapClaims{
+		"id":    user.ID,
+		"email": user.Email,
+		"exp":   time.Now().Add(time.Duration(CurrentConfig.Cookie.User.Expires) * time.Hour).Unix(),
+	})
+	refreshToken, _ := createToken(jwt.MapClaims{
+		"id":  user.ID,
+		"exp": time.Now().Add(time.Duration(CurrentConfig.Cookie.Refresh.Expires) * time.Hour).Unix(),
+	})
+	user.RefreshToken = refreshToken
+	config.DB.Save(&user)
+	return userToken, refreshToken
+}

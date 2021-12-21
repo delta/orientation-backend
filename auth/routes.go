@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	// "github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/config"
 	"github.com/labstack/echo/v4"
 	logger "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 // Route to register all auth routes
@@ -18,6 +18,9 @@ func RegisterRoutes(v *echo.Group) {
 	v.GET("/callback", CallBack)
 	v.GET("/logout", LogOut)
 	v.GET("/checkAuth", CheckAuth_deprecated)
+	if config.Config("IS_DEV") == "true" {
+		v.POST("/dummyLogin", DummyLogin)
+	}
 }
 
 func Auth(c echo.Context) error {
@@ -47,6 +50,41 @@ func Auth(c echo.Context) error {
 	base, _ := url.Parse("https://auth.delta.nitt.edu/authorize")
 	base.RawQuery = queryString.Encode()
 	return c.Redirect(http.StatusFound, base.String())
+}
+
+func DummyLogin(c echo.Context) error {
+	type UserStruct struct {
+		Roll string `json:"roll"`
+	}
+	u := new(UserStruct)
+	c.Bind(u)
+	fmt.Println(u.Roll)
+	r, err := strconv.Atoi(u.Roll)
+	if err != nil {
+		return c.JSON(http.StatusOK, isAuthResult{Status: false})
+	}
+	userToken, refreshToken := createDummyUser(r)
+	userCookie := http.Cookie{
+		Name:     CurrentConfig.Cookie.User.Name,
+		Value:    userToken,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   int((time.Duration(CurrentConfig.Cookie.User.Expires) * time.Hour).Seconds()),
+	}
+
+	refreshCookie := http.Cookie{
+		Name:     CurrentConfig.Cookie.Refresh.Name,
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   int((time.Duration(CurrentConfig.Cookie.Refresh.Expires) * time.Hour).Seconds()),
+	}
+	c.SetCookie(&userCookie)
+	c.SetCookie(&refreshCookie)
+	origin := c.Request().Header.Get(echo.HeaderOrigin)
+	c.Response().Header().Set(echo.HeaderAccessControlAllowOrigin, origin)
+	c.Response().Header().Set(echo.HeaderAccessControlAllowCredentials, "true")
+	return c.JSON(http.StatusOK, isAuthResult{Status: true})
 }
 
 // Handles dauth callback
