@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	// "github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/config"
 	"github.com/labstack/echo/v4"
 	logger "github.com/sirupsen/logrus"
@@ -19,7 +18,7 @@ func RegisterRoutes(v *echo.Group) {
 	v.GET("/callback", CallBack)
 	v.GET("/logout", LogOut)
 	v.GET("/checkAuth", CheckAuth_deprecated)
-	if is_dev {
+	if config.Config("IS_DEV") == "true" {
 		v.POST("/dummyLogin", DummyLogin)
 	}
 }
