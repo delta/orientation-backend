@@ -2,30 +2,65 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
+	"regexp"
 
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+
+	"github.com/delta/orientation-backend/auth"
 	"github.com/delta/orientation-backend/config"
+	"github.com/delta/orientation-backend/core"
+	"github.com/delta/orientation-backend/leaderboard"
+	"github.com/delta/orientation-backend/models"
+	"github.com/delta/orientation-backend/ws"
 )
 
-func main() {
+func allowOrigin(origin string) (bool, error) {
+	return regexp.MatchString(`^http:\/\/localhost:3000((\/).*)?$`, origin)
+}
 
+func main() {
 	config.InitConfig()
+	models.Init()
+	ws.InitRooms()
+
+	// broadcasts users position to each room every *x* seconds
+	go ws.RoomBroadcast()
 
 	port := config.Config("PORT")
-	addr := fmt.Sprintf(":%s",port)
+	addr := fmt.Sprintf(":%s", port)
 
-	defer func() {
-		if r := recover(); r != nil {
-			config.Log.Errorln("Error occured", r)
-		}
-	}()
+	e := echo.New()
+	e.Validator = core.NewValidator()
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOriginFunc: allowOrigin,
+		AllowMethods:    []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
+		AllowHeaders: []string{
+			echo.HeaderAccessControlRequestMethod,
+			echo.HeaderAccessControlRequestHeaders,
+			echo.HeaderContentType,
+			echo.HeaderAccessControlAllowOrigin,
+		},
+		AllowCredentials: true,
+		ExposeHeaders: []string{
+			echo.HeaderAccessControlAllowHeaders,
+			echo.HeaderAccessControlAllowOrigin,
+			echo.HeaderAccessControlAllowMethods,
+			echo.HeaderAccessControlAllowCredentials,
+		},
+	}))
 
-	handler := func (w http.ResponseWriter, r *http.Request) {
-    	fmt.Fprintf(w, "work in progress")
-	}
+	apiGroup := e.Group("/api", auth.AuthMiddlewareWrapper(auth.AuthMiddlewareConfig{
+		Skipper: auth.SkipperFunc,
+	}))
 
-	http.HandleFunc("/", handler)
+	core.RegisterRoutes(apiGroup)
+	ws.RegisterRoutes(apiGroup)
 
-	log.Fatal(http.ListenAndServe(addr, nil))
+	authGroup := apiGroup.Group("/auth")
+	auth.RegisterRoutes(authGroup)
+	leaderboard.RegisterRoutes(apiGroup)
+
+	e.Logger.Fatal(e.Start(addr))
 }

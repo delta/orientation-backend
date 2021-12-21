@@ -13,6 +13,8 @@ func initLogger() {
 	// overriding default(stderr) to stdout
 	Log.Out = os.Stdout
 
+	logrus.SetLevel(logrus.DebugLevel)
+
 	Log.Formatter = &logrus.TextFormatter{
 		ForceColors: true,
 	}

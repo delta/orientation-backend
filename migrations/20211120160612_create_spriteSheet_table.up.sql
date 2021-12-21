@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS SpriteSheet(
+    id bigint UNSIGNED NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY (id) REFERENCES User(id)
+);

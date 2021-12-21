@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// DB connection object, this will be used to connect and do operation in db
+// mysql connection object
 var DB *gorm.DB
 
 func initDB() {
@@ -20,9 +20,8 @@ func initDB() {
 	// db connection str
 	connStr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=true", dbUser, dbPwd, dbHost, dbPort, dbName)
 
-	//connecting to db
+	// connecting to db
 	db, err := gorm.Open(mysql.Open(connStr), &gorm.Config{})
-
 	if err != nil {
 		panic(fmt.Errorf("error connecting DB, %+v", err))
 	}

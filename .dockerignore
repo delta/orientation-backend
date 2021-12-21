@@ -1,0 +1,11 @@
+.git
+Dockerfile
+README.md
+docker-compose.yml
+dauth.config.example.json
+.sample.env
+build/
+.docker.sample.env
+.docker.env
+/orientation_redis_volume
+/orientation_db_volume

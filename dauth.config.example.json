@@ -1,0 +1,26 @@
+{
+  "dauth": {
+    "client_id": "",
+    "client_secret": "",
+    "redirect_uri": "",
+    "grant_type": "authorization_code",
+    "nonce": "",
+    "response_type": "code",
+    "state": "",
+    "scope": [
+      "email",
+      "user"
+    ]
+  },
+  "cookie": {
+    "refresh_cookie": {
+      "name": "UtopiaRefresh",
+      "expiry_period": 168
+    },
+    "user_cookie": {
+      "name": "UtopiaAuth",
+      "expiry_period": 1
+    },
+    "jwt_secret": ""
+  }
+}
