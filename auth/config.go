@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 )
 
+var is_dev = true
+
 type authConfig struct {
 	Dauth struct {
 		Client_id     string   `json:"client_id"`
