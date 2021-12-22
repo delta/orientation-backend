@@ -1,0 +1,34 @@
+name: Miagrate and Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: utopia
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-retries=3 --health-timeout=5s
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "1.16"
+
+      - name: Setup env file
+        run: cp .sample.env .env
+
+      - name: Run Migrations
+        run: |
+          go get -tags 'mysql'  -u github.com/golang-migrate/migrate/v4/cmd/migrate/
+          migrate -path "./migrations" -database "mysql://root:password@/utopia" up
+
+      - name: Go Build
+        run: go build .
