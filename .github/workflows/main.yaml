@@ -27,7 +27,7 @@ jobs:
 
       - name: Run Migrations
         run: |
-          go get -tags 'mysql'  -u github.com/golang-migrate/migrate/v4/cmd/migrate/
+          go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
           migrate -path "./migrations" -database "mysql://root:password@/utopia" up
 
       - name: Go Build
