@@ -6,6 +6,8 @@ services:
     ports: 
       - '${API_LOCAL_PORT}:${PORT}'
     restart: on-failure
+    env_file:
+      - ./.env
     depends_on:
       - orientation_db
       - orientation_redis

@@ -12,7 +12,7 @@
 - Install
 
 ```bash
-go get -tags 'mysql'  -u github.com/golang-migrate/migrate/v4/cmd/migrate/
+go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 ```
 
 - Create Migrations
@@ -24,13 +24,13 @@ migrate create -ext sql -dir ./migrations <MIGRATION_NAME>
 - Up Migrations
 
 ```bash
-migrate -path "./migrations" -database "mysql://root:YOUR_MYSQL_PASSWORD@/DB_NAME" up
+migrate -path "./migrations" -database "mysql://root:YOUR_MYSQL_PASSWORD@/utopia" up
 ```
 
 - Down Migrations
 
 ```bash
-migarte -path "./migrations"  -database "mysql://root:YOUR_MYSQL_PASSWORD@/DB_NAME" down
+migarte -path "./migrations"  -database "mysql://root:YOUR_MYSQL_PASSWORD@/utopia" down
 ```
 
 ### Setup
