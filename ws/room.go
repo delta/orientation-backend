@@ -170,3 +170,8 @@ func broadcastNewuser(user *user) {
 
 	l.Infof("broadcast new user to %s room is successful", room.name)
 }
+
+func GetUserRoom(id int) string {
+	userCurrentRoom := userRooms.userRoom[id]
+	return userCurrentRoom
+}
