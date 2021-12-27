@@ -173,7 +173,7 @@ func broadcastNewuser(user *user) {
 
 func GetUserRoom(id int) string {
 	userRooms.RLock()
+	defer userRooms.RUnlock()
 	userCurrentRoom := userRooms.userRoom[id]
-	userRooms.RUnlock()
 	return userCurrentRoom
 }
