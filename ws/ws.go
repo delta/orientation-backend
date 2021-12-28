@@ -65,9 +65,9 @@ func wsHandler(c echo.Context) error {
 	}()
 
 	// check if user already established connection
-	userRooms.RLock()
+	UserRooms.RLock()
 
-	_, ok := userRooms.userRoom[user.ID]
+	_, ok := UserRooms.UserRoom[user.ID]
 
 	if ok {
 		response := &responseMessage{
@@ -83,7 +83,7 @@ func wsHandler(c echo.Context) error {
 		return nil
 	}
 
-	userRooms.RUnlock()
+	UserRooms.RUnlock()
 
 	// unary(request -> response) handles all the ws messages
 	unaryController(conn, client, l, c)

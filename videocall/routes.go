@@ -7,6 +7,7 @@ import (
 
 	appAuth "github.com/delta/orientation-backend/auth"
 	"github.com/delta/orientation-backend/config"
+	"github.com/delta/orientation-backend/core"
 	"github.com/delta/orientation-backend/ws"
 	"github.com/labstack/echo/v4"
 	"github.com/livekit/protocol/auth"
@@ -28,11 +29,20 @@ func GetJoinToken(apiKey, apiSecret, room, identity string) (string, error) {
 
 	return at.ToJWT()
 }
+
 func JoinVc(c echo.Context) error {
 	apiKey := config.Config("LIVEKIT_KEY")
 	apiSecret := config.Config("LIVEKIT_SECRET")
 	user, err := appAuth.GetCurrentUser(c)
-	roomName := ws.GetUserRoom(user.ID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, core.ErrorResponse{Message: "User not authenticated"})
+	}
+	ws.UserRooms.RLock()
+	defer ws.UserRooms.Unlock()
+
+	roomName := ws.UserRooms.UserRoom[user.ID]
+
 	token, err := GetJoinToken(apiKey, apiSecret, roomName, user.Username)
 	if err != nil {
 		fmt.Println(err)
