@@ -39,7 +39,7 @@ func JoinVc(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, core.ErrorResponse{Message: "User not authenticated"})
 	}
 	ws.UserRooms.RLock()
-	defer ws.UserRooms.Unlock()
+	defer ws.UserRooms.RUnlock()
 
 	roomName := ws.UserRooms.UserRoom[user.ID]
 
