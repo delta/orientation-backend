@@ -3,6 +3,7 @@ package videocall
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	appAuth "github.com/delta/orientation-backend/auth"
@@ -43,7 +44,7 @@ func JoinVc(c echo.Context) error {
 
 	roomName := ws.UserRooms.UserRoom[user.ID]
 
-	token, err := GetJoinToken(apiKey, apiSecret, roomName, user.Username)
+	token, err := GetJoinToken(apiKey, apiSecret, roomName, strconv.Itoa(user.ID))
 	if err != nil {
 		fmt.Println(err)
 	}
