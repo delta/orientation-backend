@@ -13,7 +13,7 @@ type updateUserDataResponse struct {
 }
 
 type userData struct {
-	UserId     int    `json:"id"`
+	ID         int    `json:"id"`
 	Name       string `json:"name"`
 	SpriteType string `json:"spriteType"`
 }

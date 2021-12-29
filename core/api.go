@@ -87,7 +87,7 @@ func getUserMap(c echo.Context) error {
 
 	var userMap []userData
 
-	if err := db.Select("id", "name", "spriteType").Find(&userMap).Error; err != nil {
+	if err := db.Table("User").Select("id", "name", "spriteType").Find(&userMap).Error; err != nil {
 		l.Errorf("Erorr %e fetching user map from db", err)
 		return c.JSON(http.StatusInternalServerError, getUserMapResponse{UserMap: userMap, Success: false})
 	}
