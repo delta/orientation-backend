@@ -1,12 +1,13 @@
 package leaderboard
 
 import (
-	"fmt"
 	"net/http"
 
+	"encoding/base64"
 	"github.com/labstack/echo/v4"
 	logger "github.com/sirupsen/logrus"
 	"strconv"
+	"strings"
 )
 
 func RegisterRoutes(v *echo.Group) {
@@ -14,8 +15,7 @@ func RegisterRoutes(v *echo.Group) {
 }
 
 type Score struct {
-	Game  string `json:"game"`
-	Score string `json:"score"`
+	Data string `json:"data"`
 }
 
 func AddScore(c echo.Context) error {
@@ -27,9 +27,19 @@ func AddScore(c echo.Context) error {
 		l.Errorf("Incorrect data sent")
 		return err
 	}
-	fmt.Println(s.Game)
-	sc, _ := strconv.Atoi(s.Score)
-	err := handleAddScore(c, s.Game, sc)
+	dec, _ := base64.StdEncoding.DecodeString(s.Data)
+	split := strings.Split(string(dec), "$")
+	if len(split) < 3 {
+		l.Errorf("Invalid data. Not enough values")
+		return c.JSON(http.StatusBadRequest, ScoreAddStatus{Status: false, Message: "Couldn't add score"})
+	}
+	game_name := split[1]
+	sc, err := strconv.Atoi(split[2])
+	if err != nil {
+		l.Errorf("Score is not an integer")
+		return c.JSON(http.StatusBadRequest, ScoreAddStatus{Status: false, Message: "Couldn't add score"})
+	}
+	err = handleAddScore(c, game_name, sc)
 	if err != nil {
 
 		l.Errorf("Couldn't add score")

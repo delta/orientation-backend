@@ -1,9 +1,6 @@
 package leaderboard
 
 import (
-	// "errors"
-	"fmt"
-
 	"github.com/delta/orientation-backend/auth"
 	"github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/models"
@@ -27,7 +24,6 @@ func handleAddScore(c echo.Context, game_name string, score int) error {
 		l.Errorf("Couldn't get user")
 		return err
 	}
-	fmt.Println(user.Get_id())
 	var game models.MiniGame
 	err = config.DB.Where("name = ?", game_name).First(&game).Error
 	if err != nil {
@@ -36,7 +32,6 @@ func handleAddScore(c echo.Context, game_name string, score int) error {
 	}
 	var leader models.LeaderBoard
 	err = config.DB.Where("miniGameId = ? AND userid = ?", game.ID, user.Get_id()).First(&leader).Error
-	fmt.Println(user.Get_id())
 	if err != nil {
 		l.Infof("Couldn't find user in leaderboard for given name. Creating new record")
 		record := models.LeaderBoard{GameId: game.ID, UserId: user.Get_id(), Score: score}
