@@ -128,6 +128,7 @@ func (r *room) roomBroadcast() {
 	if len(users) == 0 {
 		l.Infof("no users in connection pool - %s room", r.name)
 		return
+
 	}
 
 	broadcastData := &responseMessage{
@@ -169,4 +170,27 @@ func broadcastNewuser(user *user) {
 	}
 
 	l.Infof("broadcast new user to %s room is successful", room.name)
+}
+
+func broadcastUserleftRoom(userId int, leftRoom string) {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserleftRoom"})
+
+	room := rooms[leftRoom]
+
+	room.Lock()
+	defer room.Unlock()
+
+	response := responseMessage{
+		MessageType: "user-left",
+		Data:        userId,
+	}
+
+	responseJson, _ := json.Marshal(response)
+
+	for _, v := range room.pool {
+		v.WriteMessage(websocket.TextMessage, responseJson)
+	}
+
+	l.Infof("broadcast user left successful for %s room", leftRoom)
+
 }
