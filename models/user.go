@@ -27,6 +27,7 @@ type User struct {
 	Gender       Gender `gorm:"column:gender"`
 	Department   string `gorm:"column:department;default:null"`
 	RefreshToken string `gorm:"column:refreshToken;default:null"`
+	SpriteType   string `gorm:"column:spriteType"`
 }
 
 func (User) TableName() string {

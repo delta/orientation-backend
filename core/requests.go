@@ -9,15 +9,14 @@ import (
 
 type userUpdateRequest struct {
 	User struct {
-		Email         string        `json:"email"`
-		Name          string        `json:"name"`
-		RefreshToken  string        `json:"refreshToken"`
-		SpriteSheetID int           `json:"SpriteSheetID"`
-		Gender        models.Gender `json:"gender" validate:"required"`
-		Department    string        `json:"department" validate:"required"`
-		Username      string        `json:"username" validate:"required"`
-		Description   string        `json:"description" validate:"required"`
-		// Spritesheet   SpriteSheet   `json:"spriteSheet""`
+		Email        string        `json:"email"`
+		Name         string        `json:"name"`
+		RefreshToken string        `json:"refreshToken"`
+		Gender       models.Gender `json:"gender" validate:"required"`
+		Department   string        `json:"department" validate:"required"`
+		Username     string        `json:"username" validate:"required"`
+		Description  string        `json:"description" validate:"required"`
+		SpriteType   string        `json:"spriteType"`
 	} `json:"user"`
 }
 
@@ -55,6 +54,7 @@ func (r *userUpdateRequest) bind(c echo.Context, u *models.User) error {
 	u.Description = r.User.Description
 	u.Gender = r.User.Gender
 	u.Department = r.User.Department
+	u.SpriteType = r.User.SpriteType
 
 	return nil
 }
