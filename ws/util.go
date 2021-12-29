@@ -48,10 +48,10 @@ func isRoomExist(room string) bool {
 // utility func to check if user exist in the room connection pool
 func isUserExistRoom(room string, id int) bool {
 	if isRoomExist(room) {
-		userRooms.RLock()
-		defer userRooms.RUnlock()
+		UserRooms.RLock()
+		defer UserRooms.RUnlock()
 
-		userRoom := userRooms.userRoom[id]
+		userRoom := UserRooms.UserRoom[id]
 
 		return userRoom == room
 	}

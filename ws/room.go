@@ -23,14 +23,14 @@ type room struct {
 
 type userRoomMap struct {
 	sync.RWMutex
-	userRoom map[int]string
+	UserRoom map[int]string
 }
 
 // hashmap contains all the rooms and it's connection pool
 var rooms map[string]*room = make(map[string]*room)
 
-var userRooms *userRoomMap = &userRoomMap{
-	userRoom: make(map[int]string),
+var UserRooms *userRoomMap = &userRoomMap{
+	UserRoom: make(map[int]string),
 }
 
 func InitRooms() {
@@ -149,7 +149,7 @@ func (r *room) roomBroadcast() {
 // **not thread safe**
 func broadcastNewuser(user *user) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastNewuser"})
-	userRoom, ok := userRooms.userRoom[user.Id]
+	userRoom, ok := UserRooms.UserRoom[user.Id]
 
 	if !ok {
 		l.Error("error getting user room from userMap")

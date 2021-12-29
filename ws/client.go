@@ -49,9 +49,9 @@ func (c *client) register(u *registerUserRequest) error {
 	}
 
 	// adding user room in userRoom map
-	userRooms.Lock()
-	userRooms.userRoom[c.id] = u.Room
-	userRooms.Unlock()
+	UserRooms.Lock()
+	UserRooms.UserRoom[c.id] = u.Room
+	UserRooms.Unlock()
 
 	// locking connection pool
 	room.Lock()
@@ -81,10 +81,10 @@ func (c *client) deRegister() error {
 		return err
 	}
 
-	userRooms.Lock()
-	defer userRooms.Unlock()
+	UserRooms.Lock()
+	defer UserRooms.Unlock()
 
-	userRoom, ok := userRooms.userRoom[c.id]
+	userRoom, ok := UserRooms.UserRoom[c.id]
 
 	if !ok {
 		l.Error("error getting user room from userMap")
@@ -92,7 +92,7 @@ func (c *client) deRegister() error {
 
 	room := rooms[userRoom]
 
-	delete(userRooms.userRoom, c.id)
+	delete(UserRooms.UserRoom, c.id)
 	// deleting client from connection pool
 	room.Lock()
 	defer room.Unlock()
@@ -139,9 +139,9 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 
 	// adding client ws connection handler to new room pool
 	toRoom.Lock()
-	userRooms.Lock()
+	UserRooms.Lock()
 
-	userRooms.userRoom[c.id] = cr.To
+	UserRooms.UserRoom[c.id] = cr.To
 	toRoom.pool[c.id] = conn
 
 	// updating user data(position + room)
@@ -153,7 +153,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	// broadcasts new user data to all the connected clients in that room
 	broadcastNewuser(user)
 
-	userRooms.Unlock()
+	UserRooms.Unlock()
 	toRoom.Unlock()
 
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)

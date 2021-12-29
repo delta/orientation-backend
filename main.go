@@ -12,6 +12,7 @@ import (
 	"github.com/delta/orientation-backend/core"
 	"github.com/delta/orientation-backend/leaderboard"
 	"github.com/delta/orientation-backend/models"
+	"github.com/delta/orientation-backend/videocall"
 	"github.com/delta/orientation-backend/ws"
 )
 
@@ -61,6 +62,6 @@ func main() {
 	authGroup := apiGroup.Group("/auth")
 	auth.RegisterRoutes(authGroup)
 	leaderboard.RegisterRoutes(apiGroup)
-
+	videocall.RegisterRoutes(apiGroup)
 	e.Logger.Fatal(e.Start(addr))
 }

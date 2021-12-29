@@ -10,7 +10,7 @@ import (
 
 func CreateNewUser(email string, name string, gender Gender) User {
 	rand.Seed(time.Now().UnixNano())
-	user := User{Email: email, Name: name, Gender: gender}
+	user := User{Email: email, Name: name, Gender: gender, SpriteType: "player"}
 	return user
 }
 

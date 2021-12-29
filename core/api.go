@@ -3,6 +3,7 @@ package core
 import (
 	"net/http"
 
+	"github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/models"
 	"github.com/labstack/echo/v4"
 	logger "github.com/sirupsen/logrus"
@@ -11,6 +12,7 @@ import (
 func RegisterRoutes(v *echo.Group) {
 	v.GET("/user/me", GetUserData)
 	v.PUT("/user/signup", UpdateUserData)
+	v.GET("/user/map", getUserMap)
 }
 
 // returns the user data with the given credentials
@@ -68,4 +70,27 @@ func UpdateUserData(c echo.Context) error {
 	l.Infof("Successfully updated user data")
 
 	return c.JSON(http.StatusOK, updateUserDataResponse{Success: true, User: u})
+}
+
+func getUserMap(c echo.Context) error {
+	l := logger.WithFields(logger.Fields{"method": "core/getUserMap"})
+
+	u, err := GetCurrentUser(c)
+
+	l.Debugf("Found the user=%v while requesting for user", u)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{Message: "User not authenticated"})
+	}
+
+	db := config.DB
+
+	var userMap []userData
+
+	if err := db.Table("User").Select("id", "name", "spriteType").Find(&userMap).Error; err != nil {
+		l.Errorf("Erorr %e fetching user map from db", err)
+		return c.JSON(http.StatusInternalServerError, getUserMapResponse{UserMap: userMap, Success: false})
+	}
+
+	return c.JSON(http.StatusAccepted, getUserMapResponse{UserMap: userMap, Success: true})
 }
