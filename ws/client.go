@@ -158,6 +158,9 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
 
+	// broadcast user left broadcast
+	go broadcastUserleftRoom(c.id, cr.From)
+
 	return nil
 }
 

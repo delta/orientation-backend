@@ -15,7 +15,7 @@ type requestMessage struct {
 // response message type
 // data send from the server to clinet
 // in socket communication
-// response message-type -> `room-broadcast`, `new-user`, `already-connected`
+// response message-type -> `room-broadcast`, `new-user`, `already-connected`, `user-left`
 type responseMessage struct {
 	MessageType string
 	Data        interface{}
