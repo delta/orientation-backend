@@ -14,7 +14,7 @@ import (
 
 func RegisterRoutes(v *echo.Group) {
 	v.POST("/addscore", addScore)
-	v.GET("/leaderboard:minigameId", getLeaderBoard)
+	v.GET("/leaderboard/:minigameId", getLeaderBoard)
 }
 
 type Score struct {
@@ -22,10 +22,10 @@ type Score struct {
 	Score string `json:"score"`
 }
 
-type Leaderboard struct {
-	Name       int    `gorm:"column:Name;" json:"userId"`
-	Score      int    `gorm:"column:Score;" json:"score`
-	Department string `gorm:"column:Department;" json:"department"`
+type leaderboard struct {
+	Name       string `json:"name"`
+	Score      int    `json:"score"`
+	Department string `json:"department`
 }
 
 func addScore(c echo.Context) error {
@@ -55,9 +55,15 @@ func getLeaderBoard(c echo.Context) error {
 
 	l.Infoln("getleaderBoard requested")
 
-	minigameId := c.Param("minigameId")
+	minigameChar := c.Param("minigameId")
+	minigameId, err := strconv.Atoi(minigameChar)
 
-	var response []Leaderboard
+	var response []leaderboard
+
+	if err != nil {
+		l.Errorf("error parsing minigameId %+v", err)
+		return c.JSON(http.StatusInternalServerError, leaderBoardResponse{Leaderboard: response, Message: "error parsing minigame form url"})
+	}
 
 	db := config.DB
 
@@ -65,16 +71,17 @@ func getLeaderBoard(c echo.Context) error {
 
 	if err := db.First(&miniGame, minigameId).Error; err != nil {
 		l.Errorf("Error fetching miniGame from db %+v", err)
-		return c.JSON(http.StatusBadRequest, LeaderBoardResponse{Leaderboard: response, Message: "invalid minigame"})
+		return c.JSON(http.StatusBadRequest, leaderBoardResponse{Leaderboard: response, Message: "invalid minigame"})
 	}
 
-	query := fmt.Sprintf("SELECT u.userName AS Name,u.department AS Department,l.score AS Score FROM LeaderBoard AS l LEFT JOIN User AS u ON l.userId = u.id WHERE l.miniGameId = %s ORDER BY l.score DESC;", minigameId)
+	query := "SELECT u.userName AS name, L.score AS score, u.department AS department FROM LeaderBoard AS L LEFT JOIN User AS u ON L.userId = u.id WHERE L.miniGameId = ? ORDER BY L.score DESC;"
 
-	if err := db.Raw(query).Scan(&response).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, LeaderBoardResponse{Leaderboard: response, Message: "internal server error"})
+	if err := db.Raw(query, minigameId).Scan(&response).Error; err != nil {
+		l.Errorf("Error fetching leaderboard from db %+v", err)
+		return c.JSON(http.StatusInternalServerError, leaderBoardResponse{Leaderboard: response, Message: "internal server error"})
 	}
 
-	l.Infoln("getleaderBoard for minigame id %s is successful", minigameId)
+	l.Infof("getleaderBoard for minigame id %d is successful", minigameId)
 
-	return nil
+	return c.JSON(http.StatusOK, leaderBoardResponse{Leaderboard: response, Message: "success"})
 }

@@ -9,6 +9,8 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2
+	github.com/jinzhu/gorm v1.9.16 // indirect
+	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/joho/godotenv v1.4.0
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/leodido/go-urn v1.2.1 // indirect
@@ -26,5 +28,5 @@ require (
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0
 	gorm.io/driver/mysql v1.1.3
-	gorm.io/gorm v1.22.2
+	gorm.io/gorm v1.22.4
 )

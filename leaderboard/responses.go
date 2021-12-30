@@ -5,7 +5,7 @@ type ScoreAddStatus struct {
 	Message string `json:"message"`
 }
 
-type LeaderBoardResponse struct {
-	Leaderboard []Leaderboard `json:"leaderboard"`
+type leaderBoardResponse struct {
+	Leaderboard []leaderboard `json:"leaderboard"`
 	Message     string        `json:"message"`
 }
