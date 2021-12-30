@@ -22,3 +22,7 @@ type getUserMapResponse struct {
 	UserMap []userData `json:"userMap"`
 	Success bool       `json:"success"`
 }
+type getSingleUserMapResponse struct {
+	UserMap userData `json:"userMap"`
+	Success bool     `json:"success"`
+}
