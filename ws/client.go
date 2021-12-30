@@ -51,11 +51,9 @@ func (c *client) register(u *registerUserRequest) error {
 	// adding user room in userRoom map
 	UserRooms.Lock()
 	UserRooms.UserRoom[c.id] = u.Room
-	UserRooms.Unlock()
 
 	// locking connection pool
 	room.Lock()
-	defer room.Unlock()
 
 	// add ws connection handler to the pool
 	room.pool[c.id] = c.wsConn
@@ -64,6 +62,10 @@ func (c *client) register(u *registerUserRequest) error {
 
 	// broadcasts new user data to all the connected clients in that room
 	broadcastNewuser(user)
+
+	room.Unlock()
+
+	UserRooms.Unlock()
 
 	return nil
 }
@@ -95,13 +97,15 @@ func (c *client) deRegister() error {
 	delete(UserRooms.UserRoom, c.id)
 	// deleting client from connection pool
 	room.Lock()
-	defer room.Unlock()
 	delete(room.pool, c.id)
+	room.Unlock()
 
 	// deleting user from redis
 	if user.deleteUser(c.id) != nil {
 		return err
 	}
+
+	go broadcastUserleftRoom(c.id, userRoom)
 
 	l.Infof("de-registering user %d from connection pool successful", c.id)
 
@@ -124,7 +128,17 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 		return err
 	}
 
-	if !isUserExistRoom(cr.From, c.id) {
+	UserRooms.Lock()
+
+	userOldRoom, ok := UserRooms.UserRoom[c.id]
+
+	if !ok {
+		// this can happen if user try to move before registering
+		// or after deregistering
+		return fmt.Errorf("user not found in userMap")
+	}
+
+	if userOldRoom != cr.From {
 		return fmt.Errorf("user %d not exist in %s room", c.id, cr.From)
 	}
 
@@ -139,7 +153,6 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 
 	// adding client ws connection handler to new room pool
 	toRoom.Lock()
-	UserRooms.Lock()
 
 	UserRooms.UserRoom[c.id] = cr.To
 	toRoom.pool[c.id] = conn
@@ -153,8 +166,9 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	// broadcasts new user data to all the connected clients in that room
 	broadcastNewuser(user)
 
-	UserRooms.Unlock()
 	toRoom.Unlock()
+
+	UserRooms.Unlock()
 
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
 
@@ -176,7 +190,18 @@ func (c *client) move(m *moveRequest) error {
 		return err
 	}
 
-	if !isUserExistRoom(m.Room, c.id) {
+	UserRooms.RLock()
+	defer UserRooms.RUnlock()
+
+	userOldRoom, ok := UserRooms.UserRoom[c.id]
+
+	if !ok {
+		// this can happen if user try to move before registering
+		// or after deregistering
+		return fmt.Errorf("user not found in userMap")
+	}
+
+	if userOldRoom != m.Room {
 		return fmt.Errorf("user %d not exist in %s room", c.id, m.Room)
 	}
 
