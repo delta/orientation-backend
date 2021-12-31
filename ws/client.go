@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	goaway "github.com/TwiN/go-away"
 	"github.com/delta/orientation-backend/config"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -191,6 +192,23 @@ func (c *client) move(m *moveRequest) error {
 	l.Infof("updating %s user position in room is successful", c.id)
 
 	return nil
+}
+
+func (c *client) message(cm *chatMessage) {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/message"})
+
+	l.Debugf("chat message recieved from user %d", c.id)
+
+	response := responseMessage{
+		MessageType: "chat-message",
+		Data:        cm,
+	}
+
+	cm.Message = goaway.Censor(cm.Message)
+
+	// global broadcast response message
+	go globalBroadCast(response)
+
 }
 
 // create new user object

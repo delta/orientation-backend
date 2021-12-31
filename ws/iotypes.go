@@ -15,7 +15,7 @@ type requestMessage struct {
 // response message type
 // data send from the server to clinet
 // in socket communication
-// response message-type -> `room-broadcast`, `new-user`, `already-connected`, `user-left`
+// response message-type -> `room-broadcast`, `new-user`, `already-connected`, `user-left`, `chat-message`, `users`, `user-connection-status`
 type responseMessage struct {
 	MessageType string
 	Data        interface{}
@@ -45,4 +45,22 @@ type changeRoomRequest struct {
 type moveRequest struct {
 	Room     string
 	Position userPosition
+}
+
+// global chat message struct
+type chatMessage struct {
+	Message string
+	UserId  int
+}
+
+// user connection status for global chat
+type userConnectionStatus struct {
+	Status bool
+	User   chatUser
+}
+
+// user type in chat
+type chatUser struct {
+	UserId   int
+	UserName string
 }

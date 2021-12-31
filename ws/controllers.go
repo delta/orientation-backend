@@ -45,6 +45,11 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 				l.Errorf("error registering user %s in %s room, err : %+v", client.id, registerUserRequest.Room, err)
 				return nil
 			}
+			// broadcasting user status (joined here) for global chat
+			go broadcastUserConnectionStatus(client.id, true)
+
+			// broadcast list of users connected after user registers
+			go broadCastAllConnectedUsers(conn)
 		/*
 			`user-move` type request message
 			updates user position in redis.
@@ -72,6 +77,18 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 				l.Errorf("error changing user %s room %+v", client.id, err)
 				return nil
 			}
+
+			/*
+				`message` globally broadcast message to all
+				the users connected (actually registered)
+			*/
+
+		case "message":
+			reqJson, _ := json.Marshal(requestMessage.Data)
+			var message chatMessage
+			json.Unmarshal(reqJson, &message)
+
+			client.message(&message)
 
 		default:
 			l.Debugln("Invalid socket request message type")

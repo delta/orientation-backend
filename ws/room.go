@@ -18,7 +18,7 @@ import (
 type room struct {
 	name string
 	pool map[int]*websocket.Conn
-	sync.Mutex
+	sync.RWMutex
 }
 
 type userRoomMap struct {
@@ -193,4 +193,26 @@ func broadcastUserleftRoom(userId int, leftRoom string) {
 
 	l.Infof("broadcast user left successful for %s room", leftRoom)
 
+}
+
+// globally broadcast request message to all the connected
+// i.e socket connected user
+// **thread safe**
+func globalBroadCast(message responseMessage) {
+
+	messageJson, _ := json.Marshal(message)
+
+	for _, roomPool := range rooms {
+		roomPool.RLock()
+	}
+
+	for _, roomPool := range rooms {
+		for _, v := range roomPool.pool {
+			v.WriteJSON(messageJson)
+		}
+	}
+
+	for _, roomPool := range rooms {
+		roomPool.RUnlock()
+	}
 }
