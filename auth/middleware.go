@@ -63,6 +63,7 @@ func CheckAuth(c echo.Context) (http.Cookie, bool, bool) {
 		"method":     "auth/controllers/checkAuth",
 		"userCookie": userCookie,
 	})
+	l.Errorf("user route : %s, headers: %+v", c.Path(), c.Request().Header)
 	l.Infof("Trying to authenticate user")
 	type userClaims struct {
 		Email string `json:"email"`
