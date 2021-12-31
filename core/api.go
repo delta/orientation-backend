@@ -93,7 +93,7 @@ func getUserMap(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, getUserMapResponse{UserMap: userMap, Success: false})
 	}
 
-	return c.JSON(http.StatusAccepted, getUserMapResponse{UserMap: userMap, Success: true})
+	return c.JSON(http.StatusOK, getUserMapResponse{UserMap: userMap, Success: true})
 }
 
 func getSingleUserMap(c echo.Context) error {
