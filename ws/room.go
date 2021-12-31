@@ -198,7 +198,8 @@ func broadcastUserleftRoom(userId int, leftRoom string) {
 // globally broadcast request message to all the connected
 // i.e socket connected user
 // **thread safe**
-func globalBroadCast(message responseMessage) {
+func globalBroadCast(message responseMessage, l *logrus.Entry) {
+	l.Debugf("trying to global broadcast message of %s type", message.MessageType)
 
 	messageJson, _ := json.Marshal(message)
 
@@ -206,13 +207,19 @@ func globalBroadCast(message responseMessage) {
 		roomPool.RLock()
 	}
 
+	l.Debug("locked all the rooms to broadcast")
+
 	for _, roomPool := range rooms {
 		for _, v := range roomPool.pool {
-			v.WriteJSON(messageJson)
+			v.WriteMessage(websocket.TextMessage, messageJson)
 		}
 	}
+
+	l.Info("broadcast successfull")
 
 	for _, roomPool := range rooms {
 		roomPool.RUnlock()
 	}
+
+	l.Debug("locked all the rooms to broadcast")
 }

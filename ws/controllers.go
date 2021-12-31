@@ -49,7 +49,7 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 			go broadcastUserConnectionStatus(client.id, true)
 
 			// broadcast list of users connected after user registers
-			go broadCastAllConnectedUsers(conn)
+			go sendCastAllConnectedUsers(conn, client.id)
 		/*
 			`user-move` type request message
 			updates user position in redis.

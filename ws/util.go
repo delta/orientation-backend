@@ -45,14 +45,19 @@ func getUser(id int) (*user, error) {
 }
 
 // utility func to get all the connected (socket-connected) user
-func broadCastAllConnectedUsers(conn *websocket.Conn) {
+// will be broadcast after user registers
+func sendCastAllConnectedUsers(conn *websocket.Conn, userid int) {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/util/sendCastAllConnectedUsers"})
 
+	l.Debugf("trying to broadcast all the users to %d user", userid)
 	// user ids slice
 	users := make([]chatUser, 0)
 
 	for _, roomPool := range rooms {
 		roomPool.RLock()
 	}
+
+	l.Info("Locked all the rooms to get connected users")
 
 	for _, roomPool := range rooms {
 		for userId := range roomPool.pool {
@@ -78,15 +83,17 @@ func broadCastAllConnectedUsers(conn *websocket.Conn) {
 
 	responseJson, _ := json.Marshal(response)
 
-	for _, roomPool := range rooms {
-		for _, v := range roomPool.pool {
-			v.WriteJSON(responseJson)
-		}
+	if err := conn.WriteMessage(websocket.TextMessage, responseJson); err != nil {
+		l.Errorf("error writing message %+v", err)
 	}
+
+	l.Debugf("request message sent successfull")
 
 	for _, roomPool := range rooms {
 		roomPool.RUnlock()
 	}
+
+	l.Info("UnLocked all the rooms to get connected users")
 }
 
 // utility func to check if room exist in connction pool
@@ -143,7 +150,12 @@ func deleteUserNameRedis(userId int) error {
 	return config.RDB.Del(key).Err()
 }
 
+// broadcast user connects and disconnects status to all the other connected
+// clients **thread ssafe**
 func broadcastUserConnectionStatus(userId int, status bool) {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserConnectionStatus"})
+
+	l.Debugf("trying to broadcast %d user connection status", userId)
 
 	userName, err := getUserNameRedis(userId)
 
@@ -163,5 +175,5 @@ func broadcastUserConnectionStatus(userId int, status bool) {
 			User:   chatUser},
 	}
 
-	go globalBroadCast(response)
+	go globalBroadCast(response, l)
 }

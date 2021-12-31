@@ -207,7 +207,7 @@ func (c *client) message(cm *chatMessage) {
 	cm.Message = goaway.Censor(cm.Message)
 
 	// global broadcast response message
-	go globalBroadCast(response)
+	go globalBroadCast(response, l)
 
 }
 
