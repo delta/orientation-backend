@@ -13,7 +13,7 @@ import (
 
 func RegisterRoutes(v *echo.Group) {
 	v.POST("/addscore", AddScore)
-	v.GET("leaderboard/:minigameName", getLeaderBoard)
+	v.GET("/leaderboard/:minigameName", getLeaderBoard)
 }
 
 type Score struct {
