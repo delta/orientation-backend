@@ -4,14 +4,16 @@ import (
 	"net/http"
 
 	"encoding/base64"
-	"github.com/labstack/echo/v4"
-	logger "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
+
+	"github.com/labstack/echo/v4"
+	logger "github.com/sirupsen/logrus"
 )
 
 func RegisterRoutes(v *echo.Group) {
 	v.POST("/addscore", AddScore)
+	v.GET("leaderboard/:minigameName", getLeaderBoard)
 }
 
 type Score struct {
