@@ -26,8 +26,6 @@ func main() {
 	port := config.Config("PORT")
 	addr := fmt.Sprintf(":%s", port)
 
-	fmt.Println(config.Config("FRONTEND_URL"))
-
 	e := echo.New()
 	e.Validator = core.NewValidator()
 	e.Use(middleware.Recover())
