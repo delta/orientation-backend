@@ -151,14 +151,16 @@ func broadcastUserConnectionStatus(userId int, status bool) {
 		userName = "Anonymous"
 	}
 
-	chatUser := &chatUser{
+	chatUser := chatUser{
 		UserId:   userId,
 		UserName: userName,
 	}
 
 	response := responseMessage{
 		MessageType: "user-connection-status",
-		Data:        chatUser,
+		Data: userConnectionStatus{
+			Status: status,
+			User:   chatUser},
 	}
 
 	go globalBroadCast(response)
