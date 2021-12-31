@@ -46,7 +46,7 @@ func getUser(id int) (*user, error) {
 
 // utility func to get all the connected (socket-connected) user
 // will be broadcast after user registers
-func sendCastAllConnectedUsers(conn *websocket.Conn, userid int) {
+func sendAllConnectedUsers(conn *websocket.Conn, userid int) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/util/sendCastAllConnectedUsers"})
 
 	l.Debugf("trying to broadcast all the users to %d user", userid)

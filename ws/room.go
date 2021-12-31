@@ -221,5 +221,5 @@ func globalBroadCast(message responseMessage, l *logrus.Entry) {
 		roomPool.RUnlock()
 	}
 
-	l.Debug("locked all the rooms to broadcast")
+	l.Debug("Unlocked all the rooms to broadcast")
 }
