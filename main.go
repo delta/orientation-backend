@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -16,10 +15,6 @@ import (
 	"github.com/delta/orientation-backend/ws"
 )
 
-func allowOrigin(origin string) (bool, error) {
-	return regexp.MatchString(`^http:\/\/localhost:3000((\/).*)?$`, origin)
-}
-
 func main() {
 	config.InitConfig()
 	models.Init()
@@ -31,12 +26,14 @@ func main() {
 	port := config.Config("PORT")
 	addr := fmt.Sprintf(":%s", port)
 
+	fmt.Println(config.Config("FRONTEND_URL"))
+
 	e := echo.New()
 	e.Validator = core.NewValidator()
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOriginFunc: allowOrigin,
-		AllowMethods:    []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
+		AllowOrigins: []string{config.Config("FRONTEND_URL")},
+		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
 		AllowHeaders: []string{
 			echo.HeaderAccessControlRequestMethod,
 			echo.HeaderAccessControlRequestHeaders,
