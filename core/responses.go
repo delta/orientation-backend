@@ -15,6 +15,7 @@ type updateUserDataResponse struct {
 type userData struct {
 	ID         int    `gorm:"column:id;primary_key;AUTO_INCREMENT" json:"userId"`
 	Name       string `gorm:"column:name" json:"name"`
+	Username   string `gorm:"column:username" json:"username"`
 	SpriteType string `gorm:"column:spriteType" json:"spriteType"`
 }
 

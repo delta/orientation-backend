@@ -69,7 +69,7 @@ func getLeaderBoard(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, leaderBoardResponse{Leaderboard: response, Message: "invalid minigame"})
 	}
 
-	query := "SELECT u.userName AS name, L.score AS score, u.department AS department, u.id as id, u.id FROM LeaderBoard AS L LEFT JOIN User AS u ON L.userId = u.id WHERE L.miniGameId = ? ORDER BY L.score DESC;"
+	query := "SELECT u.userName AS username, L.score AS score, u.name as name, u.department AS department, u.id as id, u.id FROM LeaderBoard AS L LEFT JOIN User AS u ON L.userId = u.id WHERE L.miniGameId = ? ORDER BY L.score DESC;"
 
 	if err := db.Raw(query, miniGame.ID).Scan(&response).Error; err != nil {
 		l.Errorf("Error fetching leaderboard from db %+v", err)

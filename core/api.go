@@ -76,19 +76,11 @@ func UpdateUserData(c echo.Context) error {
 func getUserMap(c echo.Context) error {
 	l := logger.WithFields(logger.Fields{"method": "core/getUserMap"})
 
-	u, err := GetCurrentUser(c)
-
-	l.Debugf("Found the user=%v while requesting for user", u)
-
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{Message: "User not authenticated"})
-	}
-
 	db := config.DB
 
 	var userMap []userData
 
-	if err := db.Table("User").Select("id", "name", "spriteType").Find(&userMap).Error; err != nil {
+	if err := db.Table("User").Select("id", "name", "username", "spriteType").Find(&userMap).Error; err != nil {
 		l.Errorf("Erorr %e fetching user map from db", err)
 		return c.JSON(http.StatusInternalServerError, getUserMapResponse{UserMap: userMap, Success: false})
 	}
@@ -111,7 +103,7 @@ func getSingleUserMap(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid userId"})
 	}
 
-	if err := db.Table("User").Select("id", "name", "spriteType").Where("id = ?", userId).First(&userMap).Error; err != nil {
+	if err := db.Table("User").Select("id", "name", "username", "spriteType").Where("id = ?", userId).First(&userMap).Error; err != nil {
 		l.Errorf("Erorr %e fetching user map from db", err)
 		return c.JSON(http.StatusInternalServerError, getSingleUserMapResponse{UserMap: userMap, Success: false})
 	}
