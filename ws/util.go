@@ -54,7 +54,7 @@ func sendAllConnectedUsers(conn *websocket.Conn, userid int) {
 	users := make([]chatUser, 0)
 
 	for _, roomPool := range rooms {
-		roomPool.RLock()
+		roomPool.Lock()
 	}
 
 	l.Info("Locked all the rooms to get connected users")
@@ -69,7 +69,7 @@ func sendAllConnectedUsers(conn *websocket.Conn, userid int) {
 				userName = "Anonymous"
 			}
 
-			newUser.UserName = userName
+			newUser.Name = userName
 			newUser.UserId = userId
 
 			users = append(users, newUser)
@@ -90,7 +90,7 @@ func sendAllConnectedUsers(conn *websocket.Conn, userid int) {
 	l.Debugf("request message sent successfull")
 
 	for _, roomPool := range rooms {
-		roomPool.RUnlock()
+		roomPool.Unlock()
 	}
 
 	l.Info("UnLocked all the rooms to get connected users")
@@ -164,12 +164,12 @@ func broadcastUserConnectionStatus(userId int, status bool) {
 	}
 
 	chatUser := chatUser{
-		UserId:   userId,
-		UserName: userName,
+		UserId: userId,
+		Name:   userName,
 	}
 
 	response := responseMessage{
-		MessageType: "user-connection-status",
+		MessageType: "user-action",
 		Data: userConnectionStatus{
 			Status: status,
 			User:   chatUser},

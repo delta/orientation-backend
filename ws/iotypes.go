@@ -6,7 +6,7 @@ package ws
 // request message type,
 // data send from the client to server
 // in socket communication
-// request message-type -> `regsiter-user`,`change-room`, `user-move`
+// request message-type -> `regsiter-user`,`change-room`, `user-move`, `chat-message`
 type requestMessage struct {
 	MessageType string
 	Data        map[string]interface{}
@@ -15,7 +15,7 @@ type requestMessage struct {
 // response message type
 // data send from the server to clinet
 // in socket communication
-// response message-type -> `room-broadcast`, `new-user`, `already-connected`, `user-left`, `chat-message`, `users`, `user-connection-status`
+// response message-type -> `room-broadcast`, `new-user`, `already-connected`, `user-left`, `chat-message`, `users`, `user-action`
 type responseMessage struct {
 	MessageType string
 	Data        interface{}
@@ -49,18 +49,22 @@ type moveRequest struct {
 
 // global chat message struct
 type chatMessage struct {
-	Message string
-	UserId  int
+	Message string   `json:"message"`
+	User    chatUser `json:"user"`
 }
 
 // user connection status for global chat
 type userConnectionStatus struct {
-	Status bool
-	User   chatUser
+	Status bool     `json:"status"`
+	User   chatUser `json:"user"`
 }
 
 // user type in chat
 type chatUser struct {
-	UserId   int
-	UserName string
+	UserId int    `json:"id"`
+	Name   string `json:"name"`
+}
+
+type chatRequestMessage struct {
+	Message string
 }

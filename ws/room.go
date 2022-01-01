@@ -18,7 +18,7 @@ import (
 type room struct {
 	name string
 	pool map[int]*websocket.Conn
-	sync.RWMutex
+	sync.Mutex
 }
 
 type userRoomMap struct {
@@ -195,7 +195,7 @@ func broadcastUserleftRoom(userId int, leftRoom string) {
 
 }
 
-// globally broadcast request message to all the connected
+// globally broadcast message to all the connected
 // i.e socket connected user
 // **thread safe**
 func globalBroadCast(message responseMessage, l *logrus.Entry) {
@@ -204,7 +204,7 @@ func globalBroadCast(message responseMessage, l *logrus.Entry) {
 	messageJson, _ := json.Marshal(message)
 
 	for _, roomPool := range rooms {
-		roomPool.RLock()
+		roomPool.Lock()
 	}
 
 	l.Debug("locked all the rooms to broadcast")
@@ -218,7 +218,7 @@ func globalBroadCast(message responseMessage, l *logrus.Entry) {
 	l.Info("broadcast successfull")
 
 	for _, roomPool := range rooms {
-		roomPool.RUnlock()
+		roomPool.Unlock()
 	}
 
 	l.Debug("Unlocked all the rooms to broadcast")

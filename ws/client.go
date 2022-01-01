@@ -194,18 +194,26 @@ func (c *client) move(m *moveRequest) error {
 	return nil
 }
 
-func (c *client) message(cm *chatMessage) {
+func (c *client) message(m string) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/message"})
 
 	l.Debugf("chat message recieved from user %d", c.id)
 
-	response := responseMessage{
-		MessageType: "chat-message",
-		Data:        cm,
+	// censoring the messages
+	message := goaway.Censor(m)
+
+	chatMessage := &chatMessage{
+		Message: message,
+		User: chatUser{
+			UserId: c.id,
+			Name:   c.name,
+		},
 	}
 
-	cm.Message = goaway.Censor(cm.Message)
-
+	response := responseMessage{
+		MessageType: "chat-message",
+		Data:        chatMessage,
+	}
 	// global broadcast response message
 	go globalBroadCast(response, l)
 

@@ -83,12 +83,12 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 				the users connected (actually registered)
 			*/
 
-		case "message":
+		case "chat-message":
 			reqJson, _ := json.Marshal(requestMessage.Data)
-			var message chatMessage
-			json.Unmarshal(reqJson, &message)
+			var requestmessage chatRequestMessage
+			json.Unmarshal(reqJson, &requestmessage)
 
-			client.message(&message)
+			client.message(requestmessage.Message)
 
 		default:
 			l.Debugln("Invalid socket request message type")
