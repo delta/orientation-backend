@@ -56,7 +56,7 @@ func wsHandler(c echo.Context) error {
 
 	client := &client{
 		id:     user.ID,
-		name:   user.Name,
+		name:   user.Username,
 		wsConn: conn,
 	}
 
