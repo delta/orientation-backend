@@ -13,6 +13,7 @@ type leaderBoardResponse struct {
 type leaderboard struct {
 	Id         int    `json:"id"`
 	Name       string `json:"name"`
+	Username   string `json:"username"`
 	Department string `json:"department"`
 	Score      int    `json:"score"`
 }
