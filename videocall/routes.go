@@ -2,10 +2,10 @@ package videocall
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
-	"math/rand"
 
 	appAuth "github.com/delta/orientation-backend/auth"
 	"github.com/delta/orientation-backend/config"
@@ -18,27 +18,27 @@ import (
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 const (
-    letterIdxBits = 6                    // 6 bits to represent a letter index
-    letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-    letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
 func randString(n int) string {
-    b := make([]byte, n)
-    // A rand.Int63() generates 63 random bits, enough for letterIdxMax letters!
-    for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {
-        if remain == 0 {
-            cache, remain = rand.Int63(), letterIdxMax
-        }
-        if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-            b[i] = letterBytes[idx]
-            i--
-        }
-        cache >>= letterIdxBits
-        remain--
-    }
+	b := make([]byte, n)
+	// A rand.Int63() generates 63 random bits, enough for letterIdxMax letters!
+	for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = rand.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
 
-    return string(b)
+	return string(b)
 }
 
 func RegisterRoutes(v *echo.Group) {
@@ -70,13 +70,13 @@ func JoinVc(c echo.Context) error {
 	fmt.Println("RoomName", roomName)
 	randRoomName := randString(40)
 	if roomName == "" {
-	    config.RDB.Set(randRoomName, true, 0)
-	    roomName = randRoomName
+		config.RDB.Set(randRoomName, true, 0)
+		roomName = randRoomName
 	} else {
-	  _, err := config.RDB.Get(roomName).Result()
-	  if err != nil {
-	    roomName = randRoomName
-	  }
+		_, err := config.RDB.Get(roomName).Result()
+		if err != nil {
+			roomName = randRoomName
+		}
 	}
 
 	token, err := GetJoinToken(apiKey, apiSecret, roomName, strconv.Itoa(user.ID))

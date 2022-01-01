@@ -12,6 +12,7 @@ import (
 	"github.com/delta/orientation-backend/leaderboard"
 	"github.com/delta/orientation-backend/models"
 	"github.com/delta/orientation-backend/videocall"
+	"github.com/delta/orientation-backend/webhooks"
 	"github.com/delta/orientation-backend/ws"
 )
 
@@ -53,6 +54,7 @@ func main() {
 
 	core.RegisterRoutes(apiGroup)
 	ws.RegisterRoutes(apiGroup)
+	webhooks.RegisterRoutes(apiGroup)
 
 	authGroup := apiGroup.Group("/auth")
 	auth.RegisterRoutes(authGroup)
