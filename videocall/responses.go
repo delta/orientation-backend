@@ -1,5 +1,9 @@
 package videocall
 
 type getAccessTokenResponse struct {
-	Token string `json:"token"`
+	RoomName string `json:"roomName"`
+	Token    string `json:"token"`
+}
+type roomError struct {
+	Message string `json:"message"`
 }
