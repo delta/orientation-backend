@@ -75,7 +75,7 @@ func RoomBroadcast() {
 	}
 }
 
-// get all users of that romm from redis, this method is not **thread safe**
+// get all users of that room from redis, this method is not **thread safe**
 func (r *room) getRoomUsers() ([]string, error) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/getRoomUsers"})
 
