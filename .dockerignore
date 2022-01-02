@@ -9,3 +9,4 @@ build/
 .docker.env
 /orientation_redis_volume
 /orientation_db_volume
+*.log

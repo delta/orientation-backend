@@ -3,6 +3,7 @@ module github.com/delta/orientation-backend
 go 1.16
 
 require (
+	github.com/TwiN/go-away v1.6.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible

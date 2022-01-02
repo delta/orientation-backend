@@ -194,3 +194,32 @@ func broadcastUserleftRoom(userId int, leftRoom string) {
 	l.Infof("broadcast user left successful for %s room", leftRoom)
 
 }
+
+// globally broadcast message to all the connected
+// i.e socket connected user
+// **thread safe**
+func globalBroadCast(message responseMessage, l *logrus.Entry) {
+	l.Debugf("trying to global broadcast message of %s type", message.MessageType)
+
+	messageJson, _ := json.Marshal(message)
+
+	for _, roomPool := range rooms {
+		roomPool.Lock()
+	}
+
+	l.Debug("locked all the rooms to broadcast")
+
+	for _, roomPool := range rooms {
+		for _, v := range roomPool.pool {
+			v.WriteMessage(websocket.TextMessage, messageJson)
+		}
+	}
+
+	l.Info("broadcast successfull")
+
+	for _, roomPool := range rooms {
+		roomPool.Unlock()
+	}
+
+	l.Debug("Unlocked all the rooms to broadcast")
+}

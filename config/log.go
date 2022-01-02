@@ -18,4 +18,18 @@ func initLogger() {
 	Log.Formatter = &logrus.TextFormatter{
 		ForceColors: true,
 	}
+
+	// prod config
+
+	if Config("ENV") == "production" {
+		file, err := os.OpenFile("ws.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+
+		if err != nil {
+			panic(err)
+		}
+
+		Log.Formatter = &logrus.JSONFormatter{}
+
+		Log.Out = file
+	}
 }
