@@ -31,5 +31,7 @@ func initLogger() {
 		Log.Formatter = &logrus.JSONFormatter{}
 
 		Log.Out = file
+
+		Log.SetLevel(logrus.ErrorLevel)
 	}
 }
