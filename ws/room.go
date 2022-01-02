@@ -61,14 +61,15 @@ func RoomBroadcast() {
 
 	l.Debug("Starting room broadcasts")
 
-	// x, broadcasting frequency
-	x, _ := strconv.Atoi(config.Config("x"))
+	// x => tickRate, broadcasting frequency (no of requests per second)
+	x, _ := strconv.ParseFloat(config.Config("TICK_RATE"), 64)
+	var seconds float64 = 1e3 / x
 
 	for _, v := range rooms {
 		go func(r *room) {
 			for {
 				r.roomBroadcast()
-				time.Sleep(time.Second * time.Duration(x))
+				time.Sleep(time.Duration(seconds * 1e6))
 			}
 		}(v)
 	}
