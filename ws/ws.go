@@ -86,7 +86,10 @@ func wsHandler(c echo.Context) error {
 	UserRooms.RUnlock()
 
 	// save username in redis for global chat
-	go saveUserNameRedis(user.ID, user.Username)
+	saveUserNameRedis(user.ID, user.Username)
+
+	// broadcasting user status (joined here) for global chat
+	go broadcastUserConnectionStatus(client.id, true)
 
 	// unary(request -> response) handles all the ws messages
 	unaryController(conn, client, l, c)
