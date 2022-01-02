@@ -67,29 +67,17 @@ func JoinVc(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, core.ErrorResponse{Message: "User not authenticated"})
 	}
 	roomName := c.QueryParam("room")
-	status := c.QueryParam("status")
 	fmt.Println("RoomName", roomName)
 	randRoomName := randString(40)
 	if roomName == "" {
 		config.RDB.Set(randRoomName, true, 0)
 		roomName = randRoomName
 	} else {
-		val, err := config.RDB.Get(roomName).Result()
-		fmt.Println(val)
-		fmt.Println(status)
+		_, err := config.RDB.Get(roomName).Result()
 		if err != nil {
-			if val=="1" {
-				roomName = randRoomName
-			} else {
-				return c.JSON(http.StatusBadRequest, roomError{Message: "Room doesn't exist"})
-			}
-			
+			return c.JSON(http.StatusBadRequest, roomError{Message: "Room doesn't exist"})
 		} 
 	}
-
 	token, err := GetJoinToken(apiKey, apiSecret, roomName, strconv.Itoa(user.ID))
-	if err != nil {
-		fmt.Println(err)
-	}
 	return c.JSON(http.StatusOK, getAccessTokenResponse{RoomName: roomName, Token: token})
 }
