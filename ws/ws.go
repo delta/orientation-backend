@@ -28,7 +28,7 @@ func RegisterRoutes(v *echo.Group) {
 
 /*
 	TODO
-	- use here option similiar to wap, when user try to connect in multiple tabs
+	- use here option similar to wap, when user try to connect in multiple tabs
 */
 func wsHandler(c echo.Context) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/wsHandler"})
@@ -61,9 +61,9 @@ func wsHandler(c echo.Context) error {
 	}
 
 	// check if user already established connection
-	UserRooms.RLock()
+	userRooms.RLock()
 
-	_, ok := UserRooms.UserRoom[user.ID]
+	_, ok := userRooms.userRoom[user.ID]
 
 	if ok {
 		response := &responseMessage{
@@ -79,7 +79,7 @@ func wsHandler(c echo.Context) error {
 		return nil
 	}
 
-	UserRooms.RUnlock()
+	userRooms.RUnlock()
 
 	// save username in redis for global chat
 	saveUserNameRedis(user.ID, user.Username)

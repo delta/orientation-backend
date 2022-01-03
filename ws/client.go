@@ -50,8 +50,8 @@ func (c *client) register(u *registerUserRequest) error {
 	}
 
 	// adding user room in userRoom map
-	UserRooms.Lock()
-	UserRooms.UserRoom[c.id] = u.Room
+	userRooms.Lock()
+	userRooms.userRoom[c.id] = u.Room
 
 	// locking connection pool
 	room.Lock()
@@ -66,7 +66,7 @@ func (c *client) register(u *registerUserRequest) error {
 
 	room.Unlock()
 
-	UserRooms.Unlock()
+	userRooms.Unlock()
 
 	return nil
 }
@@ -84,10 +84,10 @@ func (c *client) deRegister() error {
 		return err
 	}
 
-	UserRooms.Lock()
-	defer UserRooms.Unlock()
+	userRooms.Lock()
+	defer userRooms.Unlock()
 
-	userRoom, ok := UserRooms.UserRoom[c.id]
+	userRoom, ok := userRooms.userRoom[c.id]
 
 	if !ok {
 		l.Error("error getting user room from userMap")
@@ -95,7 +95,7 @@ func (c *client) deRegister() error {
 
 	room := rooms[userRoom]
 
-	delete(UserRooms.UserRoom, c.id)
+	delete(userRooms.userRoom, c.id)
 	// deleting client from connection pool
 	room.Lock()
 	delete(room.pool, c.id)
@@ -129,9 +129,9 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 		return err
 	}
 
-	UserRooms.Lock()
+	userRooms.Lock()
 
-	userOldRoom, ok := UserRooms.UserRoom[c.id]
+	userOldRoom, ok := userRooms.userRoom[c.id]
 
 	if !ok {
 		// this can happen if user try to move before registering
@@ -155,7 +155,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	// adding client ws connection handler to new room pool
 	toRoom.Lock()
 
-	UserRooms.UserRoom[c.id] = cr.To
+	userRooms.userRoom[c.id] = cr.To
 	toRoom.pool[c.id] = conn
 
 	// updating user data(position + room)
@@ -169,7 +169,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 
 	toRoom.Unlock()
 
-	UserRooms.Unlock()
+	userRooms.Unlock()
 
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
 
@@ -180,6 +180,8 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 }
 
 // move handler, updates user data(position and direction) in redis
+// BUG ALERT: concurrent writes on same websocket handler will panic
+// lock the room of the user while send back the mv response
 func (c *client) move(m *moveRequest) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/move"})
 
@@ -191,23 +193,17 @@ func (c *client) move(m *moveRequest) error {
 		return err
 	}
 
-	// UserRooms.RLock()
-	// defer UserRooms.RUnlock()
-
-	// userOldRoom, ok := UserRooms.UserRoom[c.id]
-
-	// if !ok {
-	// 	// this can happen if user try to move before registering
-	// 	// or after deregistering
-	// 	return fmt.Errorf("user not found in userMap")
-	// }
-
-	// if userOldRoom != m.Room {
-	// 	return fmt.Errorf("user %d not exist in %s room", c.id, m.Room)
-	// }
-
-	// user.Id = c.id
 	user.Position = m.Position
+
+	userRooms.RLock()
+	defer userRooms.RUnlock()
+
+	userRoom := userRooms.userRoom[user.Id]
+
+	room := rooms[userRoom]
+
+	room.Lock()
+	defer room.Unlock()
 
 	mvResponse := moveResponse{
 		Status: 1,
