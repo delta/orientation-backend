@@ -191,22 +191,22 @@ func (c *client) move(m *moveRequest) error {
 		return err
 	}
 
-	UserRooms.RLock()
-	defer UserRooms.RUnlock()
+	// UserRooms.RLock()
+	// defer UserRooms.RUnlock()
 
-	userOldRoom, ok := UserRooms.UserRoom[c.id]
+	// userOldRoom, ok := UserRooms.UserRoom[c.id]
 
-	if !ok {
-		// this can happen if user try to move before registering
-		// or after deregistering
-		return fmt.Errorf("user not found in userMap")
-	}
+	// if !ok {
+	// 	// this can happen if user try to move before registering
+	// 	// or after deregistering
+	// 	return fmt.Errorf("user not found in userMap")
+	// }
 
-	if userOldRoom != m.Room {
-		return fmt.Errorf("user %d not exist in %s room", c.id, m.Room)
-	}
+	// if userOldRoom != m.Room {
+	// 	return fmt.Errorf("user %d not exist in %s room", c.id, m.Room)
+	// }
 
-	user.Id = c.id
+	// user.Id = c.id
 	user.Position = m.Position
 
 	// redis is single threaded, its thread safe :)
