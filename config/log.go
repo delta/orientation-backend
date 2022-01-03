@@ -32,6 +32,6 @@ func initLogger() {
 
 		Log.Out = file
 
-		Log.SetLevel(logrus.DebugLevel)
+		Log.SetLevel(logrus.ErrorLevel)
 	}
 }

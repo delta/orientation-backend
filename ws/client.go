@@ -209,30 +209,30 @@ func (c *client) move(m *moveRequest) error {
 	// user.Id = c.id
 	user.Position = m.Position
 
-	mvResponse := moveResponse{
-		status: 1,
-	}
+	// mvResponse := moveResponse{
+	// 	status: 1,
+	// }
 
-	response := responseMessage{
-		MessageType: "move-resposne",
-		Data:        mvResponse,
-	}
+	// response := responseMessage{
+	// 	MessageType: "move-resposne",
+	// 	Data:        mvResponse,
+	// }
 
 	// redis is single threaded, its thread safe :)
 	if err := user.upsertUser(c.id); err != nil {
-		mvResponse.status = 0
-		response.Data = mvResponse
+		// mvResponse.status = 0
+		// response.Data = mvResponse
 
-		resposneJson, _ := json.Marshal(response)
+		// resposneJson, _ := json.Marshal(response)
 
-		c.wsConn.WriteMessage(websocket.TextMessage, resposneJson)
+		// c.wsConn.WriteMessage(websocket.TextMessage, resposneJson)
 
 		return err
 	}
 
-	resposneJson, _ := json.Marshal(response)
+	// resposneJson, _ := json.Marshal(response)
 
-	c.wsConn.WriteMessage(websocket.TextMessage, resposneJson)
+	// c.wsConn.WriteMessage(websocket.TextMessage, resposneJson)
 
 	l.Infof("updating %s user position in room is successful", c.id)
 
