@@ -12,6 +12,10 @@ import (
 // from the websocket connection i.e the client and
 // and responds respectively
 func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c echo.Context) error {
+	defer func() {
+		closeWs(conn, client)
+	}()
+
 	for {
 		// reads the message
 		_, p, err := conn.ReadMessage()
