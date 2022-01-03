@@ -101,7 +101,7 @@ func handleCallBack(code string) (string, string, models.User, bool, error) {
 	user.RefreshToken = refreshToken
 	config.DB.Save(&user)
 	l.Infof("isNewUser=%v, Created new user and refresh token for the user", isNewUser)
-	isNewUser = (user.Description == "")
+	isNewUser = (user.SpriteType == "")
 	return userToken, refreshToken, user, isNewUser, nil
 }
 
