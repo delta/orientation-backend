@@ -102,20 +102,6 @@ func isRoomExist(room string) bool {
 	return exist
 }
 
-// utility func to check if user exist in the room connection pool
-func isUserExistRoom(room string, id int) bool {
-	if isRoomExist(room) {
-		UserRooms.RLock()
-		defer UserRooms.RUnlock()
-
-		userRoom := UserRooms.UserRoom[id]
-
-		return userRoom == room
-	}
-
-	return false
-}
-
 // utility func to save user name in redis
 func saveUserNameRedis(userId int, userName string) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/util/saveUserNameRedis"})

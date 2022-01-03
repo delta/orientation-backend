@@ -47,6 +47,14 @@ type moveRequest struct {
 	Position userPosition
 }
 
+// user move response
+// status - 1 -> success
+// status - 0 -> failed
+// client will send move request one - by -one after successful update
+type moveResponse struct {
+	status int
+}
+
 // global chat message struct
 type chatMessage struct {
 	Message string   `json:"message"`
