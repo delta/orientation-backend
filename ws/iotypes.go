@@ -52,7 +52,7 @@ type moveRequest struct {
 // status - 0 -> failed
 // client will send move request one - by -one after successful update
 type moveResponse struct {
-	status int
+	Status int `json:"status"`
 }
 
 // global chat message struct
