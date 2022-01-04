@@ -58,7 +58,8 @@ func (c *client) register(u *registerUserRequest) error {
 	if err := user.upsertUser(c.id); err != nil {
 		return err
 	}
-	roomPool := rooms[room]
+
+	roomPool := rooms[u.Room]
 	// locking connection pool
 	roomPool.Lock()
 	defer roomPool.Unlock()
