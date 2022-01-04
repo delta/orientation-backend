@@ -64,7 +64,7 @@ func (c *client) register(u *registerUserRequest) error {
 	l.Infof("register new user %d in %s room successful", c.id, u.Room)
 
 	// broadcasts new user data to all the connected clients in that room
-	broadcastNewuser(user)
+	// broadcastNewuser(user)
 
 	return nil
 }
@@ -158,14 +158,14 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	// updating user data(position + room)
 	user.Position = cr.Position
 
-	// update user data in redis
-	user.upsertUser(c.id)
-
 	// broadcasts new user data to all the connected clients in that room
-	broadcastNewuser(user)
+	// broadcastNewuser(user)
 
 	toRoom.Unlock()
 	userRooms.Unlock()
+
+	// update user data in redis
+	user.upsertUser(c.id)
 
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
 
@@ -193,23 +193,6 @@ func (c *client) move(m *moveRequest) error {
 	if err := user.upsertUser(c.id); err != nil {
 		return err
 	}
-
-	room := rooms[m.Room]
-	room.Lock()
-	defer room.Unlock()
-
-	mvResponse := moveResponse{
-		status: 1,
-	}
-
-	response := responseMessage{
-		MessageType: "move-response",
-		Data:        mvResponse,
-	}
-
-	responseJson, _ := json.Marshal(response)
-
-	c.wsConn.WriteMessage(websocket.TextMessage, responseJson)
 
 	l.Infof("updating %s user position in room is successful", c.id)
 
