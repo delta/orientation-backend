@@ -23,14 +23,14 @@ type room struct {
 
 type userRoomMap struct {
 	sync.RWMutex
-	UserRoom map[int]string
+	userRoom map[int]string
 }
 
 // hashmap contains all the rooms and it's connection pool
 var rooms map[string]*room = make(map[string]*room)
 
-var UserRooms *userRoomMap = &userRoomMap{
-	UserRoom: make(map[int]string),
+var userRooms *userRoomMap = &userRoomMap{
+	userRoom: make(map[int]string),
 }
 
 func InitRooms() {
@@ -61,21 +61,20 @@ func RoomBroadcast() {
 
 	l.Debug("Starting room broadcasts")
 
-	// x => tickRate, broadcasting frequency (no of requests per second)
-	x, _ := strconv.ParseFloat(config.Config("TICK_RATE"), 64)
-	var seconds float64 = 1e3 / x
+	// x, broadcasting frequency
+	x, _ := strconv.Atoi(config.Config("x"))
 
 	for _, v := range rooms {
 		go func(r *room) {
 			for {
 				r.roomBroadcast()
-				time.Sleep(time.Duration(seconds * 1e6))
+				time.Sleep(time.Second * time.Duration(x))
 			}
 		}(v)
 	}
 }
 
-// get all users of that room from redis, this method is not **thread safe**
+// get all users of that romm from redis, this method is not **thread safe**
 func (r *room) getRoomUsers() ([]string, error) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/getRoomUsers"})
 
@@ -129,7 +128,6 @@ func (r *room) roomBroadcast() {
 	if len(users) == 0 {
 		l.Infof("no users in connection pool - %s room", r.name)
 		return
-
 	}
 
 	broadcastData := &responseMessage{
@@ -151,7 +149,7 @@ func (r *room) roomBroadcast() {
 // **not thread safe**
 func broadcastNewuser(user *user) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastNewuser"})
-	userRoom, ok := UserRooms.UserRoom[user.Id]
+	userRoom, ok := userRooms.userRoom[user.Id]
 
 	if !ok {
 		l.Error("error getting user room from userMap")
@@ -171,56 +169,4 @@ func broadcastNewuser(user *user) {
 	}
 
 	l.Infof("broadcast new user to %s room is successful", room.name)
-}
-
-func broadcastUserleftRoom(userId int, leftRoom string) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserleftRoom"})
-
-	room := rooms[leftRoom]
-
-	room.Lock()
-	defer room.Unlock()
-
-	response := responseMessage{
-		MessageType: "user-left",
-		Data:        userId,
-	}
-
-	responseJson, _ := json.Marshal(response)
-
-	for _, v := range room.pool {
-		v.WriteMessage(websocket.TextMessage, responseJson)
-	}
-
-	l.Infof("broadcast user left successful for %s room", leftRoom)
-
-}
-
-// globally broadcast message to all the connected
-// i.e socket connected user
-// **thread safe**
-func globalBroadCast(message responseMessage, l *logrus.Entry) {
-	l.Debugf("trying to global broadcast message of %s type", message.MessageType)
-
-	messageJson, _ := json.Marshal(message)
-
-	for _, roomPool := range rooms {
-		roomPool.Lock()
-	}
-
-	l.Debug("locked all the rooms to broadcast")
-
-	for _, roomPool := range rooms {
-		for _, v := range roomPool.pool {
-			v.WriteMessage(websocket.TextMessage, messageJson)
-		}
-	}
-
-	l.Info("broadcast successfull")
-
-	for _, roomPool := range rooms {
-		roomPool.Unlock()
-	}
-
-	l.Debug("Unlocked all the rooms to broadcast")
 }

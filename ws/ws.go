@@ -56,14 +56,18 @@ func wsHandler(c echo.Context) error {
 
 	client := &client{
 		id:     user.ID,
-		name:   user.Username,
+		name:   user.Name,
 		wsConn: conn,
 	}
 
-	// check if user already established connection
-	UserRooms.RLock()
+	defer func() {
+		closeWs(conn, client)
+	}()
 
-	_, ok := UserRooms.UserRoom[user.ID]
+	// check if user already established connection
+	userRooms.RLock()
+
+	_, ok := userRooms.userRoom[user.ID]
 
 	if ok {
 		response := &responseMessage{
@@ -79,16 +83,10 @@ func wsHandler(c echo.Context) error {
 		return nil
 	}
 
-	UserRooms.RUnlock()
-
-	// save username in redis for global chat
-	saveUserNameRedis(user.ID, user.Username)
-
-	// broadcasting user status (joined here) for global chat
-	broadcastUserConnectionStatus(client.id, true)
+	userRooms.RUnlock()
 
 	// unary(request -> response) handles all the ws messages
-	go unaryController(conn, client, l, c)
+	unaryController(conn, client, l, c)
 
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	goaway "github.com/TwiN/go-away"
 	"github.com/delta/orientation-backend/config"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -50,11 +49,14 @@ func (c *client) register(u *registerUserRequest) error {
 	}
 
 	// adding user room in userRoom map
-	UserRooms.Lock()
-	UserRooms.UserRoom[c.id] = u.Room
+	userRooms.Lock()
+	defer userRooms.Unlock()
+
+	userRooms.userRoom[c.id] = u.Room
 
 	// locking connection pool
 	room.Lock()
+	defer room.Unlock()
 
 	// add ws connection handler to the pool
 	room.pool[c.id] = c.wsConn
@@ -63,10 +65,6 @@ func (c *client) register(u *registerUserRequest) error {
 
 	// broadcasts new user data to all the connected clients in that room
 	broadcastNewuser(user)
-
-	room.Unlock()
-
-	UserRooms.Unlock()
 
 	return nil
 }
@@ -84,10 +82,10 @@ func (c *client) deRegister() error {
 		return err
 	}
 
-	UserRooms.Lock()
-	defer UserRooms.Unlock()
+	userRooms.Lock()
+	defer userRooms.Unlock()
 
-	userRoom, ok := UserRooms.UserRoom[c.id]
+	userRoom, ok := userRooms.userRoom[c.id]
 
 	if !ok {
 		l.Error("error getting user room from userMap")
@@ -95,18 +93,16 @@ func (c *client) deRegister() error {
 
 	room := rooms[userRoom]
 
-	delete(UserRooms.UserRoom, c.id)
+	delete(userRooms.userRoom, c.id)
 	// deleting client from connection pool
 	room.Lock()
+	defer room.Unlock()
 	delete(room.pool, c.id)
-	room.Unlock()
 
 	// deleting user from redis
 	if user.deleteUser(c.id) != nil {
 		return err
 	}
-
-	go broadcastUserleftRoom(c.id, userRoom)
 
 	l.Infof("de-registering user %d from connection pool successful", c.id)
 
@@ -129,9 +125,9 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 		return err
 	}
 
-	UserRooms.Lock()
+	userRooms.Lock()
 
-	userOldRoom, ok := UserRooms.UserRoom[c.id]
+	userRoom, ok := userRooms.userRoom[c.id]
 
 	if !ok {
 		// this can happen if user try to move before registering
@@ -139,7 +135,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 		return fmt.Errorf("user not found in userMap")
 	}
 
-	if userOldRoom != cr.From {
+	if userRoom != cr.From {
 		return fmt.Errorf("user %d not exist in %s room", c.id, cr.From)
 	}
 
@@ -154,8 +150,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 
 	// adding client ws connection handler to new room pool
 	toRoom.Lock()
-
-	UserRooms.UserRoom[c.id] = cr.To
+	userRooms.userRoom[c.id] = cr.To
 	toRoom.pool[c.id] = conn
 
 	// updating user data(position + room)
@@ -168,13 +163,9 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	broadcastNewuser(user)
 
 	toRoom.Unlock()
-
-	UserRooms.Unlock()
+	userRooms.Unlock()
 
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
-
-	// broadcast user left broadcast
-	go broadcastUserleftRoom(c.id, cr.From)
 
 	return nil
 }
@@ -191,77 +182,16 @@ func (c *client) move(m *moveRequest) error {
 		return err
 	}
 
-	// UserRooms.RLock()
-	// defer UserRooms.RUnlock()
-
-	// userOldRoom, ok := UserRooms.UserRoom[c.id]
-
-	// if !ok {
-	// 	// this can happen if user try to move before registering
-	// 	// or after deregistering
-	// 	return fmt.Errorf("user not found in userMap")
-	// }
-
-	// if userOldRoom != m.Room {
-	// 	return fmt.Errorf("user %d not exist in %s room", c.id, m.Room)
-	// }
-
-	// user.Id = c.id
 	user.Position = m.Position
-
-	mvResponse := moveResponse{
-		status: 1,
-	}
-
-	response := responseMessage{
-		MessageType: "move-resposne",
-		Data:        mvResponse,
-	}
 
 	// redis is single threaded, its thread safe :)
 	if err := user.upsertUser(c.id); err != nil {
-		mvResponse.status = 0
-		response.Data = mvResponse
-
-		resposneJson, _ := json.Marshal(response)
-
-		c.wsConn.WriteMessage(websocket.TextMessage, resposneJson)
-
 		return err
 	}
-
-	resposneJson, _ := json.Marshal(response)
-
-	c.wsConn.WriteMessage(websocket.TextMessage, resposneJson)
 
 	l.Infof("updating %s user position in room is successful", c.id)
 
 	return nil
-}
-
-func (c *client) message(m string) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/message"})
-
-	l.Debugf("chat message recieved from user %d", c.id)
-
-	// censoring the messages
-	message := goaway.Censor(m)
-
-	chatMessage := &chatMessage{
-		Message: message,
-		User: chatUser{
-			UserId: c.id,
-			Name:   c.name,
-		},
-	}
-
-	response := responseMessage{
-		MessageType: "chat-message",
-		Data:        chatMessage,
-	}
-	// global broadcast response message
-	go globalBroadCast(response, l)
-
 }
 
 // create new user object
