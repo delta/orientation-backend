@@ -65,11 +65,9 @@ func wsHandler(c echo.Context) error {
 	}()
 
 	// check if user already established connection
-	userRooms.RLock()
+	_, err = getUserRoom(client.id)
 
-	_, ok := userRooms.userRoom[user.ID]
-
-	if ok {
+	if err != errNotFound {
 		response := &responseMessage{
 			MessageType: "already-connected",
 			Data:        "user already an established conncetion with the server",
@@ -82,8 +80,6 @@ func wsHandler(c echo.Context) error {
 		// closing the ws connection
 		return nil
 	}
-
-	userRooms.RUnlock()
 
 	// unary(request -> response) handles all the ws messages
 	unaryController(conn, client, l)

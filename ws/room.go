@@ -21,17 +21,8 @@ type room struct {
 	sync.Mutex
 }
 
-type userRoomMap struct {
-	sync.RWMutex
-	userRoom map[int]string
-}
-
 // hashmap contains all the rooms and it's connection pool
 var rooms map[string]*room = make(map[string]*room)
-
-var userRooms *userRoomMap = &userRoomMap{
-	userRoom: make(map[int]string),
-}
 
 func InitRooms() {
 	// fetching list of rooms from db
@@ -75,7 +66,7 @@ func RoomBroadcast() {
 	}
 }
 
-// get all users of that romm from redis, this method is not **thread safe**
+// get all users of that room from redis, this method is not **thread safe**
 func (r *room) getRoomUsers() ([]string, error) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/getRoomUsers"})
 
@@ -148,29 +139,29 @@ func (r *room) roomBroadcast() {
 // broadcast the newly joined user data
 // to all the clients in the room connection pool
 // **not thread safe**
-func broadcastNewuser(user *user) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastNewuser"})
-	userRoom, ok := userRooms.userRoom[user.Id]
+// func broadcastNewuser(user *user) {
+// 	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastNewuser"})
+// 	userRoom, ok := userRooms.userRoom[user.Id]
 
-	if !ok {
-		l.Error("error getting user room from userMap")
-	}
+// 	if !ok {
+// 		l.Error("error getting user room from userMap")
+// 	}
 
-	room := rooms[userRoom]
+// 	room := rooms[userRoom]
 
-	response := responseMessage{
-		MessageType: "new-user",
-		Data:        *user,
-	}
+// 	response := responseMessage{
+// 		MessageType: "new-user",
+// 		Data:        *user,
+// 	}
 
-	responseJson, _ := json.Marshal(response)
+// 	responseJson, _ := json.Marshal(response)
 
-	for _, v := range room.pool {
-		v.WriteMessage(websocket.TextMessage, responseJson)
-	}
+// 	for _, v := range room.pool {
+// 		v.WriteMessage(websocket.TextMessage, responseJson)
+// 	}
 
-	l.Infof("broadcast new user to %s room is successful", room.name)
-}
+// 	l.Infof("broadcast new user to %s room is successful", room.name)
+// }
 
 func broadcastUserleftRoom(userId int, leftRoom string) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserleftRoom"})

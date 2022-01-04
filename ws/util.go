@@ -44,3 +44,28 @@ func isRoomExist(room string) bool {
 	_, exist := rooms[room]
 	return exist
 }
+
+// save user room from redis
+func saveUserRoom(userId int, room string) error {
+	key := fmt.Sprintf("userroom:%d", userId)
+	return config.RDB.Set(key, room, 0).Err()
+}
+
+// get user room from redis
+func getUserRoom(userId int) (string, error) {
+	key := fmt.Sprintf("userroom:%d", userId)
+	room, err := config.RDB.Get(key).Result()
+
+	if err == redis.Nil {
+		return "", errNotFound
+	} else if err != nil {
+		return "", err
+	}
+
+	return room, nil
+}
+
+func deleteUserRoom(userId int) error {
+	key := fmt.Sprintf("userroom:%d", userId)
+	return config.RDB.Del(key).Err()
+}

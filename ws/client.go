@@ -41,30 +41,32 @@ func (c *client) register(u *registerUserRequest) error {
 
 	user := newUser(c.id, u.Room, u.Position)
 
-	room := rooms[u.Room]
+	room, err := getUserRoom(c.id)
+
+	if err == nil {
+		return fmt.Errorf("user already registered, now in room %s", room)
+
+	} else if err != errNotFound {
+		return err
+	}
+
+	if err := saveUserRoom(user.Id, u.Room); err != nil {
+		return fmt.Errorf("error saving user %d room to redis", user.Id)
+	}
 
 	// adding user data to redis
 	if err := user.upsertUser(c.id); err != nil {
 		return err
 	}
-
-	// adding user room in userRoom map
-	userRooms.Lock()
-	defer userRooms.Unlock()
-
-	userRooms.userRoom[c.id] = u.Room
-
+	roomPool := rooms[room]
 	// locking connection pool
-	room.Lock()
-	defer room.Unlock()
+	roomPool.Lock()
+	defer roomPool.Unlock()
 
 	// add ws connection handler to the pool
-	room.pool[c.id] = c.wsConn
+	roomPool.pool[c.id] = c.wsConn
 
 	l.Infof("register new user %d in %s room successful", c.id, u.Room)
-
-	// broadcasts new user data to all the connected clients in that room
-	// broadcastNewuser(user)
 
 	return nil
 }
@@ -82,22 +84,22 @@ func (c *client) deRegister() error {
 		return err
 	}
 
-	userRooms.Lock()
-	defer userRooms.Unlock()
+	room, err := getUserRoom(c.id)
 
-	userRoom, ok := userRooms.userRoom[c.id]
-
-	if !ok {
-		l.Error("error getting user room from userMap")
+	if err != nil {
+		return fmt.Errorf("unable to get user room from redis %+v", err)
 	}
 
-	room := rooms[userRoom]
+	if err := deleteUserRoom(user.Id); err != nil {
+		l.Errorf("error deleting user %d room in redis", user.Id)
+	}
 
-	delete(userRooms.userRoom, c.id)
+	roomPool := rooms[room]
+
 	// deleting client from connection pool
-	room.Lock()
-	defer room.Unlock()
-	delete(room.pool, c.id)
+	roomPool.Lock()
+	defer roomPool.Unlock()
+	delete(roomPool.pool, c.id)
 
 	// deleting user from redis
 	if user.deleteUser(c.id) != nil {
@@ -106,7 +108,7 @@ func (c *client) deRegister() error {
 
 	l.Infof("de-registering user %d from connection pool successful", c.id)
 
-	broadcastUserleftRoom(c.id, userRoom)
+	broadcastUserleftRoom(c.id, room)
 
 	return nil
 }
@@ -127,20 +129,6 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 		return err
 	}
 
-	userRooms.Lock()
-
-	userRoom, ok := userRooms.userRoom[c.id]
-
-	if !ok {
-		// this can happen if user try to move before registering
-		// or after deregistering
-		return fmt.Errorf("user not found in userMap")
-	}
-
-	if userRoom != cr.From {
-		return fmt.Errorf("user %d not exist in %s room", c.id, cr.From)
-	}
-
 	fromRoom := rooms[cr.From]
 	toRoom := rooms[cr.To]
 
@@ -150,24 +138,22 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	delete(fromRoom.pool, c.id)
 	fromRoom.Unlock()
 
-	// adding client ws connection handler to new room pool
-	toRoom.Lock()
-	userRooms.userRoom[c.id] = cr.To
-	toRoom.pool[c.id] = conn
-
 	// updating user data(position + room)
 	user.Position = cr.Position
-
-	// broadcasts new user data to all the connected clients in that room
-	// broadcastNewuser(user)
 
 	// update user data in redis
 	user.upsertUser(c.id)
 
+	// adding client ws connection handler to new room pool
+	toRoom.Lock()
+	toRoom.pool[c.id] = conn
+
+	// broadcasts new user data to all the connected clients in that room
+	// broadcastNewuser(user)
+
 	broadcastUserleftRoom(c.id, cr.From)
 
 	toRoom.Unlock()
-	userRooms.Unlock()
 
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
 

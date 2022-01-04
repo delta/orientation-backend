@@ -16,7 +16,7 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry) erro
 		_, p, err := conn.ReadMessage()
 
 		if err != nil {
-			l.Errorf("Error readig from socket connection %+v", err)
+			l.Errorf("Error reading from socket connection %+v", err)
 			return nil
 		}
 
@@ -59,7 +59,7 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry) erro
 			}
 		/*
 			`change-room` updates user room in redis and
-			connection pool, broadcasts `new-user` similair to
+			connection pool, broadcasts `new-user` similar to
 			user-register
 		*/
 		case "change-room":
