@@ -177,9 +177,6 @@ func broadcastUserleftRoom(userId int, leftRoom string) {
 
 	room := rooms[leftRoom]
 
-	room.Lock()
-	defer room.Unlock()
-
 	response := responseMessage{
 		MessageType: "user-left",
 		Data:        userId,

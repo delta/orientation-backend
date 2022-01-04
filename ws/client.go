@@ -106,7 +106,7 @@ func (c *client) deRegister() error {
 
 	l.Infof("de-registering user %d from connection pool successful", c.id)
 
-	go broadcastUserleftRoom(c.id, userRoom)
+	broadcastUserleftRoom(c.id, userRoom)
 
 	return nil
 }
@@ -161,15 +161,15 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	// broadcasts new user data to all the connected clients in that room
 	// broadcastNewuser(user)
 
-	toRoom.Unlock()
-	userRooms.Unlock()
-
 	// update user data in redis
 	user.upsertUser(c.id)
 
-	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
+	broadcastUserleftRoom(c.id, cr.From)
 
-	go broadcastUserleftRoom(c.id, cr.From)
+	toRoom.Unlock()
+	userRooms.Unlock()
+
+	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
 
 	return nil
 }
