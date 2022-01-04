@@ -2,10 +2,9 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
 
+	"github.com/delta/orientation-backend/auth"
 	"github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/core"
 	"github.com/gorilla/websocket"
@@ -34,26 +33,18 @@ func RegisterRoutes(v *echo.Group) {
 func wsHandler(c echo.Context) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/wsHandler"})
 
-	// l.Infof("client requested websocket connection")
+	l.Infof("client requested websocket connection")
 
-	// l.Debugf("getting user data from cookie")
-	// // getting authenticated user from the request
-	// user, err := auth.GetCurrentUser(c)
+	l.Debugf("getting user data from cookie")
+	// getting authenticated user from the request
+	user, err := auth.GetCurrentUser(c)
 
-	// if err != nil {
-	// 	l.Errorf("unable to retrive user data from request %+v", err)
-	// 	return c.JSON(http.StatusUnauthorized, core.ErrorResponse{Message: "User not authenticated"})
-	// }
-
-	userName := c.QueryParam("id")
-	userId, err := strconv.Atoi(userName)
 	if err != nil {
-		// handle error
-		fmt.Println(err)
-		return err
+		l.Errorf("unable to retrive user data from request %+v", err)
+		return c.JSON(http.StatusUnauthorized, core.ErrorResponse{Message: "User not authenticated"})
 	}
 
-	l.Infof("Upgarding %s user request to ws connection", userName)
+	l.Infof("Upgarding %s user request to ws connection", user.Name)
 	// upgradring http request to websocket connection
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 
@@ -64,8 +55,8 @@ func wsHandler(c echo.Context) error {
 	}
 
 	client := &client{
-		id:     userId,
-		name:   userName,
+		id:     user.ID,
+		name:   user.Username,
 		wsConn: conn,
 	}
 
@@ -76,17 +67,17 @@ func wsHandler(c echo.Context) error {
 	// check if user already established connection
 	userRooms.RLock()
 
-	_, ok := userRooms.userRoom[userId]
+	_, ok := userRooms.userRoom[user.ID]
 
 	if ok {
 		response := &responseMessage{
-			MessageType: "already-conncted",
+			MessageType: "already-connected",
 			Data:        "user already an established conncetion with the server",
 		}
 		respJson, _ := json.Marshal(response)
 		conn.WriteMessage(websocket.TextMessage, respJson)
 
-		l.Errorf("%s user already have an established connection with the server", userName)
+		l.Errorf("%s user already have an established connection with the server", user.Username)
 
 		// closing the ws connection
 		return nil
@@ -95,7 +86,7 @@ func wsHandler(c echo.Context) error {
 	userRooms.RUnlock()
 
 	// unary(request -> response) handles all the ws messages
-	unaryController(conn, client, l, c)
+	unaryController(conn, client, l)
 
 	return nil
 }

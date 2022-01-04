@@ -43,13 +43,13 @@ func AuthMiddlewareWrapper(config AuthMiddlewareConfig) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// skip authCheck for routes which are whilelisted by skipper
-			// if config.Skipper != nil && config.Skipper(c) {
-			// 	return next(c)
-			// }
-			// _, _, isLoggedIn := CheckAuth(c)
-			// if !isLoggedIn {
-			// 	return c.JSON(http.StatusForbidden, ErrorResponse{Message: "User not authenticated"})
-			// }
+			if config.Skipper != nil && config.Skipper(c) {
+				return next(c)
+			}
+			_, _, isLoggedIn := CheckAuth(c)
+			if !isLoggedIn {
+				return c.JSON(http.StatusForbidden, ErrorResponse{Message: "User not authenticated"})
+			}
 			return next(c)
 		}
 	}

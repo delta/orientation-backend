@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 
 	"github.com/gorilla/websocket"
-	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 )
 
 // websocket unary handler, reads request message
 // from the websocket connection i.e the client and
 // and responds respectively
-func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c echo.Context) error {
+func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry) error {
 	for {
 		// reads the message
 		_, p, err := conn.ReadMessage()
