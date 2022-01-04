@@ -1,4 +1,4 @@
-package ws
+package gorilla
 
 import (
 	"encoding/json"
@@ -32,7 +32,7 @@ type user struct {
 // register handler, adds the client to the
 // connection pool and redis
 func (c *client) register(u *registerUserRequest) error {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/register"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gorilla/register"})
 
 	l.Debugf("registering new user %d in %s room", c.id, u.Room)
 
@@ -74,7 +74,7 @@ func (c *client) register(u *registerUserRequest) error {
 // de-register handler, removes the client from
 // the connection pool and redis
 func (c *client) deRegister() error {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/deRegister"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gorilla/deRegister"})
 
 	l.Debugf("de-registering user %d from connection pool", c.id)
 
@@ -115,7 +115,7 @@ func (c *client) deRegister() error {
 
 // change room handler, changes user room and updates connection pool
 func (c *client) changeRoom(cr *changeRoomRequest) error {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/changeRoom"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gorilla/changeRoom"})
 
 	l.Debugf("changing user from %s room to %s room", cr.From, cr.To)
 
@@ -146,7 +146,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	fromRoom := rooms[cr.From]
 	toRoom := rooms[cr.To]
 
-	// removing connction handler from old room pool
+	// removing connection handler from old room pool
 	fromRoom.Lock()
 	conn := fromRoom.pool[c.id]
 	delete(fromRoom.pool, c.id)
@@ -183,7 +183,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 // BUG ALERT: concurrent writes on same websocket handler will panic
 // lock the room of the user while send back the mv response
 func (c *client) move(m *moveRequest) error {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/move"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gorilla/move"})
 
 	l.Debugf("updating %s user position in room", c.id)
 	// checking if user exists in redis storage
@@ -236,7 +236,7 @@ func (c *client) move(m *moveRequest) error {
 }
 
 func (c *client) message(m string) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/message"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gorilla/message"})
 
 	l.Debugf("chat message recieved from user %d", c.id)
 

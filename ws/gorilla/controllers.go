@@ -1,17 +1,16 @@
-package ws
+package gorilla
 
 import (
 	"encoding/json"
 
 	"github.com/gorilla/websocket"
-	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 )
 
 // websocket unary handler, reads request message
 // from the websocket connection i.e the client and
 // and responds respectively
-func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c echo.Context) error {
+func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry) error {
 	defer func() {
 		closeWs(conn, client)
 	}()
@@ -21,7 +20,7 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 		_, p, err := conn.ReadMessage()
 
 		if err != nil {
-			l.Errorf("Error readig from socket connection %+v", err)
+			l.Errorf("Error reading from socket connection %+v", err)
 			return nil
 		}
 
@@ -51,7 +50,7 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 			}
 
 			// broadcast list of users connected after user registers
-			go sendAllConnectedUsers(conn, client.id)
+			// go sendAllConnectedUsers(conn, client.id)
 		/*
 			`user-move` type request message
 			updates user position in redis.
@@ -67,7 +66,7 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry, c ec
 			}
 		/*
 			`change-room` updates user room in redis and
-			connection pool, broadcasts `new-user` similair to
+			connection pool, broadcasts `new-user` similar to
 			user-register
 		*/
 		case "change-room":

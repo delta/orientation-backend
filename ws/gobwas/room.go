@@ -1,8 +1,9 @@
-package ws
+package gobwas
 
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"sync"
 	"time"
@@ -10,14 +11,15 @@ import (
 	"github.com/delta/orientation-backend/config"
 	"github.com/delta/orientation-backend/models"
 	"github.com/go-redis/redis"
-	"github.com/gorilla/websocket"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/sirupsen/logrus"
 )
 
 // this type represents the room and its connection pool
 type room struct {
 	name string
-	pool map[int]*websocket.Conn
+	pool map[int]*net.Conn
 	sync.Mutex
 }
 
@@ -48,7 +50,7 @@ func InitRooms() {
 	for _, value := range roomList {
 		room := &room{
 			name: value,
-			pool: make(map[int]*websocket.Conn),
+			pool: make(map[int]*net.Conn),
 		}
 
 		rooms[value] = room
@@ -57,7 +59,7 @@ func InitRooms() {
 
 // broadcasts users postion to all the rooms(respectively) every **x** seconds
 func RoomBroadcast() {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/RoomBroadcast"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gobwas/RoomBroadcast"})
 
 	l.Debug("Starting room broadcasts")
 
@@ -77,7 +79,7 @@ func RoomBroadcast() {
 
 // get all users of that room from redis, this method is not **thread safe**
 func (r *room) getRoomUsers() ([]string, error) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/getRoomUsers"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gobwas/getRoomUsers"})
 
 	l.Debugf("Fetching all users of %s room", r.name)
 
@@ -113,7 +115,7 @@ func (r *room) getRoomUsers() ([]string, error) {
 // broadcast users postions in a room to all the clients
 // in the connection pool
 func (r *room) roomBroadcast() {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/roomBroadcast"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gobwas/roomBroadcast"})
 
 	l.Debugf("Broadcasting users data to %s room", r.name)
 
@@ -140,7 +142,7 @@ func (r *room) roomBroadcast() {
 	broadcastJsonData, _ := json.Marshal(broadcastData)
 
 	for _, v := range r.pool {
-		v.WriteMessage(websocket.TextMessage, broadcastJsonData)
+		wsutil.WriteServerMessage(*v, ws.OpText, broadcastJsonData)
 	}
 
 	l.Infof("Broadcast successful for %s room", r.name)
@@ -150,7 +152,7 @@ func (r *room) roomBroadcast() {
 // to all the clients in the room connection pool
 // **not thread safe**
 func broadcastNewuser(user *user) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastNewuser"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gobwas/broadcastNewuser"})
 	userRoom, ok := userRooms.userRoom[user.Id]
 
 	if !ok {
@@ -167,14 +169,14 @@ func broadcastNewuser(user *user) {
 	responseJson, _ := json.Marshal(response)
 
 	for _, v := range room.pool {
-		v.WriteMessage(websocket.TextMessage, responseJson)
+		wsutil.WriteServerMessage(*v, ws.OpText, responseJson)
 	}
 
 	l.Infof("broadcast new user to %s room is successful", room.name)
 }
 
 func broadcastUserleftRoom(userId int, leftRoom string) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserleftRoom"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gobwas/broadcastUserleftRoom"})
 
 	room := rooms[leftRoom]
 
@@ -189,7 +191,7 @@ func broadcastUserleftRoom(userId int, leftRoom string) {
 	responseJson, _ := json.Marshal(response)
 
 	for _, v := range room.pool {
-		v.WriteMessage(websocket.TextMessage, responseJson)
+		wsutil.WriteServerMessage(*v, ws.OpText, responseJson)
 	}
 
 	l.Infof("broadcast user left successful for %s room", leftRoom)
@@ -212,7 +214,8 @@ func globalBroadCast(message responseMessage, l *logrus.Entry) {
 
 	for _, roomPool := range rooms {
 		for _, v := range roomPool.pool {
-			v.WriteMessage(websocket.TextMessage, messageJson)
+			wsutil.WriteServerMessage(*v, ws.OpText, messageJson)
+
 		}
 	}
 

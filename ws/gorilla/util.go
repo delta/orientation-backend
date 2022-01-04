@@ -1,4 +1,4 @@
-package ws
+package gorilla
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 
 // utility function to close websocket connection
 func closeWs(conn *websocket.Conn, c *client) {
-	config.Log.Infof("clinet %d connection closed", c.id)
+	config.Log.Infof("client %d connection closed", c.id)
 
 	go deleteUserNameRedis(c.id)
 	// broadcasting user disconnected status for chat
@@ -47,7 +47,7 @@ func getUser(id int) (*user, error) {
 // utility func to get all the connected (socket-connected) user
 // will be broadcast after user registers
 func sendAllConnectedUsers(conn *websocket.Conn, userid int) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/util/sendCastAllConnectedUsers"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gorilla/util/sendCastAllConnectedUsers"})
 
 	l.Debugf("trying to broadcast all the users to %d user", userid)
 	// user ids slice
@@ -96,7 +96,7 @@ func sendAllConnectedUsers(conn *websocket.Conn, userid int) {
 	l.Info("UnLocked all the rooms to get connected users")
 }
 
-// utility func to check if room exist in connction pool
+// utility func to check if room exist in connection pool
 func isRoomExist(room string) bool {
 	_, exist := rooms[room]
 	return exist
@@ -104,7 +104,7 @@ func isRoomExist(room string) bool {
 
 // utility func to save user name in redis
 func saveUserNameRedis(userId int, userName string) error {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/util/saveUserNameRedis"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gorilla/util/saveUserNameRedis"})
 	key := fmt.Sprintf("username:%d", userId)
 
 	if err := config.RDB.Set(key, userName, 0).Err(); err != nil {
@@ -137,9 +137,9 @@ func deleteUserNameRedis(userId int) error {
 }
 
 // broadcast user connects and disconnects status to all the other connected
-// clients **thread ssafe**
+// clients **thread safe**
 func broadcastUserConnectionStatus(userId int, status bool) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserConnectionStatus"})
+	l := config.Log.WithFields(logrus.Fields{"method": "gorilla/broadcastUserConnectionStatus"})
 
 	l.Debugf("trying to broadcast %d user connection status", userId)
 

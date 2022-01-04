@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -13,16 +17,22 @@ import (
 	"github.com/delta/orientation-backend/models"
 	"github.com/delta/orientation-backend/videocall"
 	"github.com/delta/orientation-backend/webhooks"
-	"github.com/delta/orientation-backend/ws"
+	"github.com/delta/orientation-backend/ws/gorilla"
+	"github.com/delta/orientation-backend/ws/ws"
 )
 
 func main() {
 	config.InitConfig()
 	models.Init()
-	ws.InitRooms()
+	gorilla.InitRooms()
 
-	// broadcasts users position to each room every *x* seconds
-	go ws.RoomBroadcast()
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
+	go func() {
+		ws.WsMain()
+	}()
 
 	port := config.Config("PORT")
 	addr := fmt.Sprintf(":%s", port)
@@ -53,7 +63,6 @@ func main() {
 	}))
 
 	core.RegisterRoutes(apiGroup)
-	ws.RegisterRoutes(apiGroup)
 	webhooks.RegisterRoutes(apiGroup)
 
 	authGroup := apiGroup.Group("/auth")

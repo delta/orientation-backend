@@ -1,0 +1,101 @@
+package gobwas
+
+import (
+	"encoding/json"
+	"net"
+
+	"github.com/gobwas/ws/wsutil"
+	"github.com/sirupsen/logrus"
+)
+
+// websocket unary handler, reads request message
+// from the websocket connection i.e the client and
+// and responds respectively
+func unaryController(conn net.Conn, client *client, l *logrus.Entry) error {
+	defer func() {
+		closeWs(client)
+	}()
+
+	for {
+		// reads the message
+		p, _, err := wsutil.ReadClientData(conn)
+
+		if err != nil {
+			l.Errorf("Error reading from socket connection %+v", err)
+			return nil
+		}
+
+		var requestMessage requestMessage
+
+		if err := json.Unmarshal(p, &requestMessage); err != nil {
+			l.Errorf("error parsing request message %v", err)
+			return nil
+		}
+
+		switch requestMessage.MessageType {
+		/*
+			`register-user` type request message
+			adds user to connection pool and in redis.
+			broadcasts `new-user` response message with
+			user position to all the connected clients in
+			that room.
+		*/
+		case "user-register":
+			reqJson, _ := json.Marshal(requestMessage.Data)
+			var registerUserRequest registerUserRequest
+			json.Unmarshal(reqJson, &registerUserRequest)
+
+			if err := client.register(&registerUserRequest); err != nil {
+				l.Errorf("error registering user %s in %s room, err : %+v", client.id, registerUserRequest.Room, err)
+				return nil
+			}
+
+			// broadcast list of users connected after user registers
+			go sendAllConnectedUsers(&conn, client.id)
+		/*
+			`user-move` type request message
+			updates user position in redis.
+		*/
+		case "user-move":
+			reqJson, _ := json.Marshal(requestMessage.Data)
+			var moverequest moveRequest
+			json.Unmarshal(reqJson, &moverequest)
+
+			if err := client.move(&moverequest); err != nil {
+				l.Errorf("error updating user %d position in redis : %+v", client.id, err)
+				return nil
+			}
+		/*
+			`change-room` updates user room in redis and
+			connection pool, broadcasts `new-user` similar to
+			user-register
+		*/
+		case "change-room":
+			reqJson, _ := json.Marshal(requestMessage.Data)
+			var changeRoomRequest changeRoomRequest
+			json.Unmarshal(reqJson, &changeRoomRequest)
+
+			if err := client.changeRoom(&changeRoomRequest); err != nil {
+				l.Errorf("error changing user %s room %+v", client.id, err)
+				return nil
+			}
+
+			/*
+				`message` globally broadcast message to all
+				the users connected (actually registered)
+			*/
+
+		case "chat-message":
+			reqJson, _ := json.Marshal(requestMessage.Data)
+			var requestmessage chatRequestMessage
+			json.Unmarshal(reqJson, &requestmessage)
+
+			client.message(requestmessage.Message)
+
+		default:
+			l.Debugln("Invalid socket request message type")
+			// closing the ws connection
+			return nil
+		}
+	}
+}

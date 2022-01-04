@@ -151,3 +151,34 @@ func createDummyUser(roll int) (string, string) {
 	config.DB.Save(&user)
 	return userToken, refreshToken
 }
+
+func GetCurrentUser_http(r *http.Request) (models.User, error) {
+
+	cookie, err := r.Cookie(CurrentConfig.Cookie.User.Name)
+	if err != nil {
+		fmt.Println("No cookie")
+		return models.User{}, fmt.Errorf("Couldn't find cookie")
+	}
+	type customClaims struct {
+		Email string `json:"email"`
+		ID    int    `json:"id"`
+		jwt.StandardClaims
+	}
+	token, err := jwt.ParseWithClaims(cookie.Value, &customClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return HmacSampleSecret, nil
+	})
+	if err != nil {
+		return models.User{}, err
+	}
+	if claims, ok := token.Claims.(*customClaims); ok && token.Valid {
+		var user models.User
+		err = nil
+		err = config.DB.Where("email = ?", claims.Email).First(&user).Error
+		return user, err
+	} else {
+		return models.User{}, fmt.Errorf("Invalid token")
+	}
+}

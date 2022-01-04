@@ -1,4 +1,4 @@
-package ws
+package gorilla
 
 // this file will contain all the request and response type
 // of the message passed from and to in the ws connection
