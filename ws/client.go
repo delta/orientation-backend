@@ -106,6 +106,8 @@ func (c *client) deRegister() error {
 
 	l.Infof("de-registering user %d from connection pool successful", c.id)
 
+	go broadcastUserleftRoom(c.id, userRoom)
+
 	return nil
 }
 
@@ -142,7 +144,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	fromRoom := rooms[cr.From]
 	toRoom := rooms[cr.To]
 
-	// removing connction handler from old room pool
+	// removing connection handler from old room pool
 	fromRoom.Lock()
 	conn := fromRoom.pool[c.id]
 	delete(fromRoom.pool, c.id)
@@ -166,6 +168,8 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	userRooms.Unlock()
 
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
+
+	go broadcastUserleftRoom(c.id, cr.From)
 
 	return nil
 }

@@ -62,13 +62,14 @@ func RoomBroadcast() {
 	l.Debug("Starting room broadcasts")
 
 	// x, broadcasting frequency
-	x, _ := strconv.Atoi(config.Config("x"))
+	x, _ := strconv.ParseFloat(config.Config("TICK_RATE"), 64)
+	var seconds float64 = 1e3 / x
 
 	for _, v := range rooms {
 		go func(r *room) {
 			for {
 				r.roomBroadcast()
-				time.Sleep(time.Second * time.Duration(x))
+				time.Sleep(time.Duration(seconds * 1e6))
 			}
 		}(v)
 	}
@@ -169,4 +170,27 @@ func broadcastNewuser(user *user) {
 	}
 
 	l.Infof("broadcast new user to %s room is successful", room.name)
+}
+
+func broadcastUserleftRoom(userId int, leftRoom string) {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserleftRoom"})
+
+	room := rooms[leftRoom]
+
+	room.Lock()
+	defer room.Unlock()
+
+	response := responseMessage{
+		MessageType: "user-left",
+		Data:        userId,
+	}
+
+	responseJson, _ := json.Marshal(response)
+
+	for _, v := range room.pool {
+		v.WriteMessage(websocket.TextMessage, responseJson)
+	}
+
+	l.Infof("broadcast user left successful for %s room", leftRoom)
+
 }

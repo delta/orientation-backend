@@ -21,17 +21,17 @@ func initLogger() {
 
 	// prod config
 
-	if Config("ENV") == "production" {
-		file, err := os.OpenFile("ws.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	// if Config("ENV") == "production" {
+	// 	file, err := os.OpenFile("ws.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 
-		if err != nil {
-			panic(err)
-		}
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
 
-		Log.Formatter = &logrus.JSONFormatter{}
+	// 	Log.Formatter = &logrus.JSONFormatter{}
 
-		Log.Out = file
+	// 	Log.Out = file
 
-		Log.SetLevel(logrus.DebugLevel)
-	}
+	// 	Log.SetLevel(logrus.DebugLevel)
+	// }
 }
