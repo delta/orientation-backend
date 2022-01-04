@@ -12,10 +12,10 @@ type userUpdateRequest struct {
 		Email        string        `json:"email"`
 		Name         string        `json:"name"`
 		RefreshToken string        `json:"refreshToken"`
-		Gender       models.Gender `json:"gender" validate:"required"`
+		Gender       models.Gender `json:"gender"`
 		Department   string        `json:"department" validate:"required"`
 		Username     string        `json:"username" validate:"required"`
-		Description  string        `json:"description" validate:"required"`
+		Description  string        `json:"description"`
 		SpriteType   string        `json:"spriteType"`
 	} `json:"user"`
 }
