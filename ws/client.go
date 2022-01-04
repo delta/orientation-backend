@@ -175,6 +175,7 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 }
 
 // move handler, updates user data(position and direction) in redis
+// TODO : refactor later perfectly
 func (c *client) move(m *moveRequest) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/move"})
 
@@ -192,6 +193,23 @@ func (c *client) move(m *moveRequest) error {
 	if err := user.upsertUser(c.id); err != nil {
 		return err
 	}
+
+	room := rooms[m.Room]
+	room.Lock()
+	defer room.Unlock()
+
+	mvResponse := moveResponse{
+		status: 1,
+	}
+
+	response := responseMessage{
+		MessageType: "move-response",
+		Data:        mvResponse,
+	}
+
+	responseJson, _ := json.Marshal(response)
+
+	c.wsConn.WriteMessage(websocket.TextMessage, responseJson)
 
 	l.Infof("updating %s user position in room is successful", c.id)
 
