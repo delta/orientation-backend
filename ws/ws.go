@@ -41,7 +41,7 @@ func wsHandler(c echo.Context) error {
 	}
 
 	l.Infof("Upgarding %s user request to ws connection", user.Name)
-	// upgradring http request to websocket connection
+	// upgrading http request to websocket connection
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 
 	// closing the request, if there is any error in the upgradation
@@ -66,7 +66,7 @@ func wsHandler(c echo.Context) error {
 	if err != errNotFound {
 		response := &responseMessage{
 			MessageType: "already-connected",
-			Data:        "user already an established conncetion with the server",
+			Data:        "user already an established connection with the server",
 		}
 		respJson, _ := json.Marshal(response)
 		conn.WriteMessage(websocket.TextMessage, respJson)

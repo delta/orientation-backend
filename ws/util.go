@@ -7,6 +7,7 @@ import (
 	"github.com/delta/orientation-backend/config"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/websocket"
+	"github.com/sirupsen/logrus"
 )
 
 // utility function to close websocket connection
@@ -68,4 +69,19 @@ func getUserRoom(userId int) (string, error) {
 func deleteUserRoom(userId int) error {
 	key := fmt.Sprintf("userroom:%d", userId)
 	return config.RDB.Del(key).Err()
+}
+
+// deletes all user related data saved in redis
+func closeConnection(c *websocket.Conn, userId int, l *logrus.Entry) {
+	l.Infof("Closing connection for user %s", userId)
+	c.Close()
+	// deleting user name
+	deleteUserRoom(userId)
+
+	// deleting user position
+	key := fmt.Sprintf("user:%d", userId)
+	config.RDB.Del(key).Err()
+
+	l.Debugf("Successfully closed connection for user %s", userId)
+
 }

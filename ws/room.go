@@ -129,8 +129,15 @@ func (r *room) roomBroadcast() {
 
 	broadcastJsonData, _ := json.Marshal(broadcastData)
 
-	for _, v := range r.pool {
-		v.WriteMessage(websocket.TextMessage, broadcastJsonData)
+	for id, v := range r.pool {
+		if err := v.WriteMessage(websocket.TextMessage, broadcastJsonData); err != nil {
+			l.Infof("Error writing to client %s connection", id)
+			delete(r.pool, id)
+			l.Debugf("client %s removed from connection pool", id)
+
+			go closeConnection(v, id, l)
+		}
+
 	}
 
 	l.Infof("Broadcast successful for %s room", r.name)
@@ -167,8 +174,14 @@ func globalBroadcast(res responseMessage) {
 	for _, r := range rooms {
 		go func(r *room) {
 			r.Lock()
-			for _, c := range r.pool {
-				c.WriteMessage(websocket.TextMessage, reqJson)
+			for id, c := range r.pool {
+				if err := c.WriteMessage(websocket.TextMessage, reqJson); err != nil {
+					l.Errorf("Error writing to client %s connection %+v", id, err)
+					delete(r.pool, id)
+					l.Debugf("client %s removed from connection pool", id)
+
+					go closeConnection(c, id, l)
+				}
 			}
 			r.Unlock()
 		}(r)
