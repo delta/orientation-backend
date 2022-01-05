@@ -46,3 +46,14 @@ type moveRequest struct {
 	Room     string
 	Position userPosition
 }
+
+// chat message request
+type chatRequest struct {
+	Message string `json:"message"`
+}
+
+// chat message response
+type chatResponse struct {
+	Message  string `json:"message`
+	UserName string `json:"name"`
+}

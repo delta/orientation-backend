@@ -72,6 +72,11 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry) erro
 				return nil
 			}
 
+		case "chat-message":
+			reqJson, _ := json.Marshal(requestMessage.Data)
+			var chatRequest chatRequest
+			json.Unmarshal(reqJson, &chatRequest)
+
 		default:
 			l.Debugln("Invalid socket request message type")
 			// closing the ws connection

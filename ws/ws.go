@@ -26,10 +26,6 @@ func RegisterRoutes(v *echo.Group) {
 	v.GET("/ws", wsHandler)
 }
 
-/*
-	TODO
-	- use here option similiar to wap, when user try to connect in multiple tabs
-*/
 func wsHandler(c echo.Context) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/wsHandler"})
 

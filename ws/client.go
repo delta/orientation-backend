@@ -162,7 +162,6 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 }
 
 // move handler, updates user data(position and direction) in redis
-// TODO : refactor later perfectly
 func (c *client) move(m *moveRequest) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/move"})
 
@@ -184,6 +183,28 @@ func (c *client) move(m *moveRequest) error {
 	l.Infof("updating %s user position in room is successful", c.id)
 
 	return nil
+}
+
+func (c *client) message(ch *chatRequest) error {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/message"})
+
+	l.Debugf("trying to global broadcast the message form user %s", c.name)
+
+	chatResponse := chatResponse{
+		Message:  ch.Message,
+		UserName: c.name,
+	}
+
+	res := responseMessage{
+		MessageType: "chat-message",
+		Data:        chatResponse,
+	}
+
+	// globally broadcasting message to all the users
+	go globalBroadcast(res)
+
+	return nil
+
 }
 
 // create new user object

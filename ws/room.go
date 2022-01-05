@@ -136,33 +136,7 @@ func (r *room) roomBroadcast() {
 	l.Infof("Broadcast successful for %s room", r.name)
 }
 
-// broadcast the newly joined user data
-// to all the clients in the room connection pool
-// **not thread safe**
-// func broadcastNewuser(user *user) {
-// 	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastNewuser"})
-// 	userRoom, ok := userRooms.userRoom[user.Id]
-
-// 	if !ok {
-// 		l.Error("error getting user room from userMap")
-// 	}
-
-// 	room := rooms[userRoom]
-
-// 	response := responseMessage{
-// 		MessageType: "new-user",
-// 		Data:        *user,
-// 	}
-
-// 	responseJson, _ := json.Marshal(response)
-
-// 	for _, v := range room.pool {
-// 		v.WriteMessage(websocket.TextMessage, responseJson)
-// 	}
-
-// 	l.Infof("broadcast new user to %s room is successful", room.name)
-// }
-
+// broadcast to the room, after a client leaves a room or disconnects
 func broadcastUserleftRoom(userId int, leftRoom string) {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserleftRoom"})
 
@@ -181,4 +155,22 @@ func broadcastUserleftRoom(userId int, leftRoom string) {
 
 	l.Infof("broadcast user left successful for %s room", leftRoom)
 
+}
+
+func globalBroadcast(res responseMessage) {
+	l := config.Log.WithFields(logrus.Fields{"method": "ws/globalBroadcast"})
+
+	l.Infof("global broadcasting %s message", res.MessageType)
+
+	reqJson, _ := json.Marshal(res)
+
+	for _, r := range rooms {
+		go func(r *room) {
+			r.Lock()
+			for _, c := range r.pool {
+				c.WriteMessage(websocket.TextMessage, reqJson)
+			}
+			r.Unlock()
+		}(r)
+	}
 }
