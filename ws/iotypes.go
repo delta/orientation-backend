@@ -49,11 +49,12 @@ type moveRequest struct {
 
 // chat message request
 type chatRequest struct {
-	Message string `json:"message"`
+	Message string
 }
 
 // chat message response
 type chatResponse struct {
-	Message  string `json:"message`
-	UserName string `json:"name"`
+	Message  string
+	UserId   int
+	UserName string
 }

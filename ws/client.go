@@ -193,6 +193,7 @@ func (c *client) message(ch *chatRequest) error {
 	chatResponse := chatResponse{
 		Message:  ch.Message,
 		UserName: c.name,
+		UserId:   c.id,
 	}
 
 	res := responseMessage{
