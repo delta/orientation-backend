@@ -56,29 +56,36 @@ func wsHandler(c echo.Context) error {
 		wsConn: conn,
 	}
 
-	defer func() {
-		closeWs(conn, client)
-	}()
-
 	// check if user already established connection
-	_, err = getUserRoom(client.id)
+	// if yes,remove and close the old connection
+	userRoom, err := getUserRoom(client.id)
 
-	if err != errNotFound {
+	if err == nil {
+		l.Errorf("%s user already have an established connection with the server", user.Username)
+
 		response := &responseMessage{
 			MessageType: "already-connected",
 			Data:        "user already an established connection with the server",
 		}
+
+		room := rooms[userRoom]
+		// removing user connection from the pool
+		room.Lock()
+		oldConn := room.pool[user.ID]
+		delete(room.pool, user.ID)
+		room.Unlock()
+
 		respJson, _ := json.Marshal(response)
-		conn.WriteMessage(websocket.TextMessage, respJson)
+		oldConn.WriteMessage(websocket.TextMessage, respJson)
+		// closing the old connection
+		// and they can continue using this connection
+		closeConnection(oldConn, user.ID, l)
 
-		l.Errorf("%s user already have an established connection with the server", user.Username)
-
-		// closing the ws connection
-		return nil
+		l.Infof("Closed the %s user old connection")
 	}
 
 	// unary(request -> response) handles all the ws messages
-	unaryController(conn, client, l)
+	go unaryController(conn, client, l)
 
 	return nil
 }
