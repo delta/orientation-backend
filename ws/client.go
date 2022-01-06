@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	goaway "github.com/TwiN/go-away"
 	"github.com/delta/orientation-backend/config"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -42,31 +41,33 @@ func (c *client) register(u *registerUserRequest) error {
 
 	user := newUser(c.id, u.Room, u.Position)
 
-	room := rooms[u.Room]
+	room, err := getUserRoom(c.id)
+
+	if err == nil {
+		return fmt.Errorf("user already registered, now in room %s", room)
+
+	} else if err != errNotFound {
+		return err
+	}
+
+	if err := saveUserRoom(user.Id, u.Room); err != nil {
+		return fmt.Errorf("error saving user %d room to redis", user.Id)
+	}
 
 	// adding user data to redis
 	if err := user.upsertUser(c.id); err != nil {
 		return err
 	}
 
-	// adding user room in userRoom map
-	UserRooms.Lock()
-	UserRooms.UserRoom[c.id] = u.Room
-
+	roomPool := rooms[u.Room]
 	// locking connection pool
-	room.Lock()
+	roomPool.Lock()
+	defer roomPool.Unlock()
 
 	// add ws connection handler to the pool
-	room.pool[c.id] = c.wsConn
+	roomPool.pool[c.id] = c.wsConn
 
 	l.Infof("register new user %d in %s room successful", c.id, u.Room)
-
-	// broadcasts new user data to all the connected clients in that room
-	broadcastNewuser(user)
-
-	room.Unlock()
-
-	UserRooms.Unlock()
 
 	return nil
 }
@@ -84,31 +85,31 @@ func (c *client) deRegister() error {
 		return err
 	}
 
-	UserRooms.Lock()
-	defer UserRooms.Unlock()
+	room, err := getUserRoom(c.id)
 
-	userRoom, ok := UserRooms.UserRoom[c.id]
-
-	if !ok {
-		l.Error("error getting user room from userMap")
+	if err != nil {
+		return fmt.Errorf("unable to get user room from redis %+v", err)
 	}
 
-	room := rooms[userRoom]
+	if err := deleteUserRoom(user.Id); err != nil {
+		l.Errorf("error deleting user %d room in redis", user.Id)
+	}
 
-	delete(UserRooms.UserRoom, c.id)
+	roomPool := rooms[room]
+
 	// deleting client from connection pool
-	room.Lock()
-	delete(room.pool, c.id)
-	room.Unlock()
+	roomPool.Lock()
+	defer roomPool.Unlock()
+	delete(roomPool.pool, c.id)
 
 	// deleting user from redis
 	if user.deleteUser(c.id) != nil {
 		return err
 	}
 
-	go broadcastUserleftRoom(c.id, userRoom)
-
 	l.Infof("de-registering user %d from connection pool successful", c.id)
+
+	broadcastUserleftRoom(c.id, room)
 
 	return nil
 }
@@ -129,34 +130,14 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 		return err
 	}
 
-	UserRooms.Lock()
-
-	userOldRoom, ok := UserRooms.UserRoom[c.id]
-
-	if !ok {
-		// this can happen if user try to move before registering
-		// or after deregistering
-		return fmt.Errorf("user not found in userMap")
-	}
-
-	if userOldRoom != cr.From {
-		return fmt.Errorf("user %d not exist in %s room", c.id, cr.From)
-	}
-
 	fromRoom := rooms[cr.From]
 	toRoom := rooms[cr.To]
 
-	// removing connction handler from old room pool
+	// removing connection handler from old room pool
 	fromRoom.Lock()
 	conn := fromRoom.pool[c.id]
 	delete(fromRoom.pool, c.id)
 	fromRoom.Unlock()
-
-	// adding client ws connection handler to new room pool
-	toRoom.Lock()
-
-	UserRooms.UserRoom[c.id] = cr.To
-	toRoom.pool[c.id] = conn
 
 	// updating user data(position + room)
 	user.Position = cr.Position
@@ -164,17 +145,18 @@ func (c *client) changeRoom(cr *changeRoomRequest) error {
 	// update user data in redis
 	user.upsertUser(c.id)
 
+	// adding client ws connection handler to new room pool
+	toRoom.Lock()
+	toRoom.pool[c.id] = conn
+
 	// broadcasts new user data to all the connected clients in that room
-	broadcastNewuser(user)
+	// broadcastNewuser(user)
+
+	broadcastUserleftRoom(c.id, cr.From)
 
 	toRoom.Unlock()
 
-	UserRooms.Unlock()
-
 	l.Infof("changing user from %s room to %s room successful", cr.From, cr.To)
-
-	// broadcast user left broadcast
-	go broadcastUserleftRoom(c.id, cr.From)
 
 	return nil
 }
@@ -191,76 +173,38 @@ func (c *client) move(m *moveRequest) error {
 		return err
 	}
 
-	// UserRooms.RLock()
-	// defer UserRooms.RUnlock()
-
-	// userOldRoom, ok := UserRooms.UserRoom[c.id]
-
-	// if !ok {
-	// 	// this can happen if user try to move before registering
-	// 	// or after deregistering
-	// 	return fmt.Errorf("user not found in userMap")
-	// }
-
-	// if userOldRoom != m.Room {
-	// 	return fmt.Errorf("user %d not exist in %s room", c.id, m.Room)
-	// }
-
-	// user.Id = c.id
 	user.Position = m.Position
-
-	mvResponse := moveResponse{
-		status: 1,
-	}
-
-	response := responseMessage{
-		MessageType: "move-resposne",
-		Data:        mvResponse,
-	}
 
 	// redis is single threaded, its thread safe :)
 	if err := user.upsertUser(c.id); err != nil {
-		mvResponse.status = 0
-		response.Data = mvResponse
-
-		resposneJson, _ := json.Marshal(response)
-
-		c.wsConn.WriteMessage(websocket.TextMessage, resposneJson)
-
 		return err
 	}
-
-	resposneJson, _ := json.Marshal(response)
-
-	c.wsConn.WriteMessage(websocket.TextMessage, resposneJson)
 
 	l.Infof("updating %s user position in room is successful", c.id)
 
 	return nil
 }
 
-func (c *client) message(m string) {
+func (c *client) message(ch *chatRequest) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/message"})
 
-	l.Debugf("chat message recieved from user %d", c.id)
+	l.Debugf("trying to global broadcast the message form user %s", c.name)
 
-	// censoring the messages
-	message := goaway.Censor(m)
-
-	chatMessage := &chatMessage{
-		Message: message,
-		User: chatUser{
-			UserId: c.id,
-			Name:   c.name,
-		},
+	chatResponse := chatResponse{
+		Message:  ch.Message,
+		UserName: c.name,
+		UserId:   c.id,
 	}
 
-	response := responseMessage{
+	res := responseMessage{
 		MessageType: "chat-message",
-		Data:        chatMessage,
+		Data:        chatResponse,
 	}
-	// global broadcast response message
-	go globalBroadCast(response, l)
+
+	// globally broadcasting message to all the users
+	go globalBroadcast(res)
+
+	return nil
 
 }
 

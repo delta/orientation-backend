@@ -11,40 +11,49 @@ import (
 )
 
 func handleAddScore(c echo.Context, game_name string, score int) error {
-	userCookie, err := c.Cookie(auth.CurrentConfig.Cookie.User.Name)
-
 	l := logger.WithFields(logger.Fields{
 		"method": "leaderboard/controller/handleAddScore",
 	})
-	l.Infof("Getting user cookie")
+
+	user, err := auth.GetCurrentUser(c)
+
+	l.Errorf("user not found %+v", err)
+
 	if err != nil {
-		l.Errorf("Couldn't find user cookie")
 		return err
 	}
-	user, err := auth.Get_info_from_cookie(userCookie, "user")
-	if err != nil {
-		l.Errorf("Couldn't get user")
-		return err
-	}
+
 	var game models.MiniGame
+
 	err = config.DB.Where("name = ?", game_name).First(&game).Error
+
 	if err != nil {
-		l.Errorf("No mini game with the given name")
+		l.Errorf("minigame not found")
 		return err
 	}
+
 	var leader models.LeaderBoard
-	err = config.DB.Where("miniGameId = ? AND userid = ?", game.ID, user.Get_id()).First(&leader).Error
+
+	err = config.DB.Where("miniGameId = ? AND userid = ?", game.ID, user.ID).First(&leader).Error
+
 	if err != nil {
 		l.Infof("Couldn't find user in leaderboard for given name. Creating new record")
-		record := models.LeaderBoard{GameId: game.ID, UserId: user.Get_id(), Score: score}
-		config.DB.Create(&record)
-	} else {
-		if leader.Score < score {
-			l.Infof("New score is greater. Updating")
-			leader.Score = score
-			config.DB.Save(&leader)
+		record := models.LeaderBoard{GameId: game.ID, UserId: user.ID, Score: score}
+		if err := config.DB.Create(&record).Error; err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if leader.Score < score {
+		l.Infof("New score is greater. Updating")
+		leader.Score = score
+		if err := config.DB.Save(&leader).Error; err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 

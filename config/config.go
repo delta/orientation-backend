@@ -5,4 +5,7 @@ func InitConfig() {
 	initLogger()
 	initDB()
 	initRDB()
+
+	// clear redis
+	RDB.FlushAll()
 }

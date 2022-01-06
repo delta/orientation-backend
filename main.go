@@ -17,6 +17,13 @@ import (
 )
 
 func main() {
+
+	defer func() {
+		if r := recover(); r != nil {
+			config.Log.Errorf("Error occurred", r)
+		}
+	}()
+
 	config.InitConfig()
 	models.Init()
 	ws.InitRooms()

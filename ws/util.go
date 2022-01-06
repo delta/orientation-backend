@@ -13,10 +13,6 @@ import (
 // utility function to close websocket connection
 func closeWs(conn *websocket.Conn, c *client) {
 	config.Log.Infof("clinet %d connection closed", c.id)
-
-	go deleteUserNameRedis(c.id)
-	// broadcasting user disconnected status for chat
-	go broadcastUserConnectionStatus(c.id, false)
 	// deleting client form connection pool
 	if err := c.deRegister(); err != nil {
 		config.Log.Errorf("error removing user %s from redis", c.id)
@@ -44,82 +40,22 @@ func getUser(id int) (*user, error) {
 	return user, nil
 }
 
-// utility func to get all the connected (socket-connected) user
-// will be broadcast after user registers
-func sendAllConnectedUsers(conn *websocket.Conn, userid int) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/util/sendCastAllConnectedUsers"})
-
-	l.Debugf("trying to broadcast all the users to %d user", userid)
-	// user ids slice
-	users := make([]chatUser, 0)
-
-	for _, roomPool := range rooms {
-		roomPool.Lock()
-	}
-
-	l.Info("Locked all the rooms to get connected users")
-
-	for _, roomPool := range rooms {
-		for userId := range roomPool.pool {
-			var newUser chatUser
-
-			userName, err := getUserNameRedis(userId)
-
-			if err != nil {
-				userName = "Anonymous"
-			}
-
-			newUser.Name = userName
-			newUser.UserId = userId
-
-			users = append(users, newUser)
-		}
-	}
-
-	var response responseMessage
-
-	response.MessageType = "users"
-	response.Data = users
-
-	responseJson, _ := json.Marshal(response)
-
-	if err := conn.WriteMessage(websocket.TextMessage, responseJson); err != nil {
-		l.Errorf("error writing message %+v", err)
-	}
-
-	l.Debugf("request message sent successfull")
-
-	for _, roomPool := range rooms {
-		roomPool.Unlock()
-	}
-
-	l.Info("UnLocked all the rooms to get connected users")
-}
-
 // utility func to check if room exist in connction pool
 func isRoomExist(room string) bool {
 	_, exist := rooms[room]
 	return exist
 }
 
-// utility func to save user name in redis
-func saveUserNameRedis(userId int, userName string) error {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/util/saveUserNameRedis"})
-	key := fmt.Sprintf("username:%d", userId)
-
-	if err := config.RDB.Set(key, userName, 0).Err(); err != nil {
-		l.Errorf("error saving %d user's name in redis, %+v", userId, err)
-		return err
-	}
-
-	return nil
+// save user room from redis
+func saveUserRoom(userId int, room string) error {
+	key := fmt.Sprintf("userroom:%d", userId)
+	return config.RDB.Set(key, room, 0).Err()
 }
 
-// utility func to get username in redis
-func getUserNameRedis(userId int) (string, error) {
-	key := fmt.Sprintf("username:%d", userId)
-
-	userName, err := config.RDB.Get(key).Result()
+// get user room from redis
+func getUserRoom(userId int) (string, error) {
+	key := fmt.Sprintf("userroom:%d", userId)
+	room, err := config.RDB.Get(key).Result()
 
 	if err == redis.Nil {
 		return "", errNotFound
@@ -127,39 +63,25 @@ func getUserNameRedis(userId int) (string, error) {
 		return "", err
 	}
 
-	return userName, nil
+	return room, nil
 }
 
-// utility func to delete username in redis
-func deleteUserNameRedis(userId int) error {
-	key := fmt.Sprintf("username:%d", userId)
+func deleteUserRoom(userId int) error {
+	key := fmt.Sprintf("userroom:%d", userId)
 	return config.RDB.Del(key).Err()
 }
 
-// broadcast user connects and disconnects status to all the other connected
-// clients **thread ssafe**
-func broadcastUserConnectionStatus(userId int, status bool) {
-	l := config.Log.WithFields(logrus.Fields{"method": "ws/broadcastUserConnectionStatus"})
+// deletes all user related data saved in redis
+func closeConnection(c *websocket.Conn, userId int, l *logrus.Entry) {
+	l.Infof("Closing connection for user %s", userId)
+	c.Close()
+	// deleting user name
+	deleteUserRoom(userId)
 
-	l.Debugf("trying to broadcast %d user connection status", userId)
+	// deleting user position
+	key := fmt.Sprintf("user:%d", userId)
+	config.RDB.Del(key).Err()
 
-	userName, err := getUserNameRedis(userId)
+	l.Debugf("Successfully closed connection for user %s", userId)
 
-	if err != nil {
-		userName = "Anonymous"
-	}
-
-	chatUser := chatUser{
-		UserId: userId,
-		Name:   userName,
-	}
-
-	response := responseMessage{
-		MessageType: "user-action",
-		Data: userConnectionStatus{
-			Status: status,
-			User:   chatUser},
-	}
-
-	go globalBroadCast(response, l)
 }

@@ -34,7 +34,7 @@ func GetUserData(c echo.Context) error {
 
 	l.Infof("Successfully found the user")
 
-	return c.JSON(http.StatusOK, getUserDataResponse{User: user, IsNewUser: user.Description == ""})
+	return c.JSON(http.StatusOK, getUserDataResponse{User: user, IsNewUser: user.SpriteType == ""})
 }
 
 func UpdateUserData(c echo.Context) error {
