@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	goaway "github.com/TwiN/go-away"
 	"github.com/delta/orientation-backend/config"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -189,6 +190,9 @@ func (c *client) message(ch *chatRequest) error {
 	l := config.Log.WithFields(logrus.Fields{"method": "ws/message"})
 
 	l.Debugf("trying to global broadcast the message form user %s", c.name)
+
+	// censoring incoming messsage
+	ch.Message = goaway.Censor(ch.Message)
 
 	chatResponse := chatResponse{
 		Message:  ch.Message,
