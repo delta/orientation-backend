@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -18,7 +17,6 @@ func unaryController(conn *websocket.Conn, client *client, l *logrus.Entry) erro
 	}()
 
 	for {
-		fmt.Println("socket reading")
 		// reads the message
 		_, p, err := conn.ReadMessage()
 
