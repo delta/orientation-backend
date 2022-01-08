@@ -170,7 +170,8 @@ func (c *client) move(m *moveRequest) error {
 	user, err := getUser(c.id)
 
 	if err != nil {
-		return err
+		l.Errorf("Error updating user position in redis %+v", err)
+		return nil
 	}
 
 	user.Position = m.Position
