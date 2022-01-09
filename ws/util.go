@@ -15,7 +15,7 @@ func closeWs(conn *websocket.Conn, c *client) {
 	config.Log.Infof("clinet %d connection closed", c.id)
 	// deleting client form connection pool
 	if err := c.deRegister(); err != nil {
-		config.Log.Errorf("error removing user %s from redis", c.id)
+		config.Log.Errorf("error removing user %s from redis %+v", c.id, err)
 	}
 	// closing ws
 	conn.Close()
